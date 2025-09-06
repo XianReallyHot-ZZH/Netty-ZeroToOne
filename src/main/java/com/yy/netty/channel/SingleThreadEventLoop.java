@@ -18,6 +18,12 @@ public abstract class SingleThreadEventLoop extends SingleThreadEventExecutor {
 
     private static final Logger logger = LoggerFactory.getLogger(SingleThreadEventLoop.class);
 
+    /**
+     * 构造方法
+     *
+     * @param executor  创建线程的执行器,该单线程执行器中的线程就是由这个执行器创建而来
+     * @param queueFactory  任务队列工厂，创建任务队列
+     */
     protected SingleThreadEventLoop(Executor executor, EventLoopTaskQueueFactory queueFactory) {
         super(executor, queueFactory, new DefaultThreadFactory());
     }
@@ -29,7 +35,8 @@ public abstract class SingleThreadEventLoop extends SingleThreadEventExecutor {
 
     /**
      * <核心方法>
-     * 在这里把服务端channel绑定到单线程执行器上,实际上就是把channel注册到执行器中的selector上
+     * 在这里把服务端channel的accept事件绑定到单线程执行器上,实际上就是把channel注册到执行器中的selector上
+     * 在第一次向单线程执行器中提交注册任务的时候，执行器的线程会被启动
      * </核心方法>
      *
      * @param channel
@@ -53,7 +60,8 @@ public abstract class SingleThreadEventLoop extends SingleThreadEventExecutor {
 
     /**
      * <核心方法>
-     * 在这里把客户端channel绑定到单线程执行器上,实际上就是把channel注册到执行器中的selector上
+     * 在这里把客户端channel的connect事件绑定到单线程执行器上,实际上就是把channel注册到执行器中的selector上
+     * 在第一次向单线程执行器中提交注册任务的时候，执行器的线程会被启动
      * </核心方法>
      *
      * @param channel
@@ -69,7 +77,7 @@ public abstract class SingleThreadEventLoop extends SingleThreadEventExecutor {
                 @Override
                 public void run() {
                     register0(channel, nioEventLoop);
-                    logger.info("客户端的channel的read事件已注册到多路复用器上了！:{}",Thread.currentThread().getName());
+                    logger.info("客户端的channel的connect事件已注册到多路复用器上了！:{}",Thread.currentThread().getName());
                 }
             });
         }
@@ -78,6 +86,7 @@ public abstract class SingleThreadEventLoop extends SingleThreadEventExecutor {
     /**
      * <核心方法>
      * channel绑定读事件，这里就不用区分是服务端还是客户端，因为都是SocketChannel
+     * 在第一次向单线程执行器中提交注册任务的时候，执行器的线程会被启动
      * </核心方法>
      *
      * @param channel

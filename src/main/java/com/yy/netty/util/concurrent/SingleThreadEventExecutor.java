@@ -49,6 +49,13 @@ public abstract class SingleThreadEventExecutor implements Executor {
     private volatile boolean interrupted;
 
 
+    /**
+     * 创建单线程执行器
+     *
+     * @param executor  创建线程的执行器,该单线程执行器中的线程就是由这个执行器创建而来
+     * @param queueFactory  任务队列工厂，该工厂会创建任务队列
+     * @param threadFactory 线程工厂，负责创建线程
+     */
     protected SingleThreadEventExecutor(Executor executor, EventLoopTaskQueueFactory queueFactory, ThreadFactory threadFactory) {
         this(executor, queueFactory, threadFactory, RejectedExecutionHandlers.reject());
     }
@@ -75,7 +82,7 @@ public abstract class SingleThreadEventExecutor implements Executor {
 
     /**
      * <核心方法>
-     * 往执行器提交任务
+     * 往执行器提交任务，如果当前的单线程执行器中的线程不存在，就创建一个线程并启动
      * </核心方法>
      *
      * @param task the runnable task

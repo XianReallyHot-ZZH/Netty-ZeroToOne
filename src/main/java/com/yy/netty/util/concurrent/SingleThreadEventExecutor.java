@@ -147,6 +147,64 @@ public abstract class SingleThreadEventExecutor implements Executor {
     }
 
     /**
+     * @Description:判断传入的线程是否是当前执行器的线程
+     *
+     * @param thread
+     * @return
+     */
+    public boolean inEventLoop(Thread thread) {
+        return thread == this.thread;
+    }
+
+    /**
+     * @Description:判断任务队列中是否有任务
+     *
+     * @return
+     */
+    protected boolean hasTasks() {
+        logger.info("我没任务了！");
+        return !taskQueue.isEmpty();
+    }
+
+    /**
+     * 取出当前队列中的所有任务并执行
+     */
+    protected void runAllTasks() {
+        runAllTasksFrom(taskQueue);
+    }
+
+    protected void runAllTasksFrom(Queue<Runnable> taskQueue) {
+        //从任务对立中拉取任务,如果第一次拉取就为null，说明任务队列中没有任务，直接返回即可
+        Runnable task = pollTaskFrom(taskQueue);
+        if (task == null) {
+            return;
+        }
+
+        for (;;) {
+            //执行任务队列中的任务
+            safeExecute(task);
+            //执行完毕之后，拉取下一个任务，如果为null就直接返回
+            task = pollTaskFrom(taskQueue);
+            if (task == null) {
+                return;
+            }
+        }
+    }
+
+    protected void safeExecute(Runnable task) {
+        try {
+            task.run();
+        } catch (Throwable t) {
+            logger.warn("A task raised an exception. Task: {}", task, t);
+        }
+    }
+
+    protected Runnable pollTaskFrom(Queue<Runnable> taskQueue) {
+        return taskQueue.poll();
+    }
+
+
+    /**
      * @Description: 中断单线程执行器中的线程
      */
     protected void interruptThread() {

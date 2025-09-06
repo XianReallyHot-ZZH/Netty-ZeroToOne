@@ -1,0 +1,20 @@
+package com.yy.netty.util.internal;
+
+public class StringUtil {
+
+    private static final char PACKAGE_SEPARATOR_CHAR = '.';
+
+    /**
+     * Generates a simplified name from a {@link Class}.  Similar to {@link Class#getSimpleName()}, but it works fine
+     * with anonymous classes.
+     */
+    public static String simpleClassName(Class<?> clazz) {
+        String className = clazz.getName();
+        final int lastDotIdx = className.lastIndexOf(PACKAGE_SEPARATOR_CHAR);
+        if (lastDotIdx > -1) {
+            return className.substring(lastDotIdx + 1);
+        }
+        return className;
+    }
+
+}

@@ -1,6 +1,7 @@
 package com.yy.netty.bootstrap;
 
 import com.yy.netty.channel.nio.NioEventLoop;
+import com.yy.netty.channel.nio.NioEventLoopGroup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -8,7 +9,7 @@ import java.net.InetSocketAddress;
 import java.nio.channels.ServerSocketChannel;
 
 /**
- * @Description:服务端Socket网络搭建引导类，引导实现对ServerSocketChannel的NIO事件处理
+ * @Description:服务端Socket网络搭建引导类，引导实现对ServerSocketChannel的NIO事件处理，最终实现服务端ip：port的绑定，同时接受各个客户端的连接请求和数据的io读取
  */
 public class ServerBootstrap {
 
@@ -23,6 +24,14 @@ public class ServerBootstrap {
     public ServerBootstrap() {
 
     }
+
+    public ServerBootstrap group(NioEventLoopGroup bossGroup, NioEventLoopGroup workerGroup) {
+
+
+
+        return this;
+    }
+
 
     /**
      * 设置nioEventLoop
@@ -90,4 +99,5 @@ public class ServerBootstrap {
         });
 
     }
+
 }

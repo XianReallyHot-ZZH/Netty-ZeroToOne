@@ -14,7 +14,7 @@ import java.util.Set;
 import java.util.concurrent.Executor;
 
 /**
- * @Description:NIO类型事件循环器（执行器），nio中selector各种事件，都由该类处理
+ * @Description:NIO类型事件循环器（执行器），nio中selector各种事件，都由该类处理，对ServerSocketChannel和SocketChannel现在还是耦合在一起实现的，这块后续再改造
  */
 public class NioEventLoop extends SingleThreadEventLoop {
 
@@ -147,22 +147,26 @@ public class NioEventLoop extends SingleThreadEventLoop {
         if (socketChannel != null) {
             // 如果是连接事件
             if (key.isConnectable()) {
+                logger.info("客户端处理IO连接事件");
                 //channel已经连接成功
                 if (socketChannel.finishConnect()) {
                     //注册读事件
-                    socketChannel.register(selector, SelectionKey.OP_READ);
+//                    socketChannel.register(selector, SelectionKey.OP_READ);
                     // 客户端也可以像服务端一样将IO读事件的处理用worker事件循环器处理
-//                    worker.register(socketChannel, worker);
+                    worker.registerRead(socketChannel, worker);
                 }
             }
             //如果是读事件
             if (key.isReadable()) {
+                logger.info("客户端处理IO读事件");
                 ByteBuffer byteBuffer = ByteBuffer.allocate(1024);
                 int len = socketChannel.read(byteBuffer);
                 byte[] buffer = new byte[len];
                 byteBuffer.flip();
                 byteBuffer.get(buffer);
                 logger.info("客户端收到消息：{}", new String(buffer));
+//                // 临时测试一下，下面代码记得删掉
+//                socketChannel.write(ByteBuffer.wrap("我是客户端，我接收到了服务端连接确认的信息".getBytes()));
             }
             return;
         }
@@ -170,6 +174,7 @@ public class NioEventLoop extends SingleThreadEventLoop {
         if (serverSocketChannel != null) {
             //连接事件
             if (key.isAcceptable()) {
+                logger.info("服务端处理IO连接事件");
                 SocketChannel socketChannel = serverSocketChannel.accept();
                 socketChannel.configureBlocking(false);
                 // 交给worker事件循环器处理，服务端的主eventLoop只处理连接事件，worker处理读事件
@@ -179,6 +184,7 @@ public class NioEventLoop extends SingleThreadEventLoop {
             }
             //读事件
             if (key.isReadable()) {
+                logger.info("服务端处理IO读事件");
                 SocketChannel channel = (SocketChannel)key.channel();
                 ByteBuffer byteBuffer = ByteBuffer.allocate(1024);
                 int len = channel.read(byteBuffer);

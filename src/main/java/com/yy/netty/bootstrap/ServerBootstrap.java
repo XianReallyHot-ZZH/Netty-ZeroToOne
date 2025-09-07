@@ -4,6 +4,7 @@ import com.yy.netty.channel.nio.NioEventLoop;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.InetSocketAddress;
 import java.nio.channels.ServerSocketChannel;
 
 /**
@@ -54,5 +55,39 @@ public class ServerBootstrap {
      * @param inetPort
      */
     public void bind(String host, int inetPort) {
+        bind(new InetSocketAddress(host, inetPort));
+    }
+
+    private void bind(InetSocketAddress inetSocketAddress) {
+        doBind(inetSocketAddress);
+    }
+
+    private void doBind(InetSocketAddress inetSocketAddress) {
+        // 对服务端channel注册accept事件,在这里的第一个accept事件会顺便启动单线程
+        nioEventLoop.register(serverSocketChannel, this.nioEventLoop);
+        // channel进行端口绑定，注册是异步的实现，所以这里绑定也要成为异步实现，保证在单线程中注册accept事件要早于绑定端口行为
+        doBind0(inetSocketAddress);
+
+    }
+
+    /**
+     * @Description:这里把绑定端口号封装成一个runnable，提交到单线程执行器的任务队列，绑定端口号仍然由单线程执行器完成,保证在单线程中注册accept事件要早于绑定端口行为
+     *
+     * @param inetSocketAddress
+     */
+    private void doBind0(InetSocketAddress inetSocketAddress) {
+        nioEventLoop.execute(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    serverSocketChannel.bind(inetSocketAddress);
+                    logger.info("服务端channel绑定至ip:port={}， 服务端启动成功！boss线程绑定至：{}",
+                            inetSocketAddress.getAddress() + ":" + inetSocketAddress.getPort(), Thread.currentThread().getName());
+                } catch (Exception e) {
+                    logger.error(e.getMessage());
+                }
+            }
+        });
+
     }
 }

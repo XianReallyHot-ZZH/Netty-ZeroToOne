@@ -169,8 +169,12 @@ public abstract class SingleThreadEventExecutor implements Executor {
      * @return
      */
     protected boolean hasTasks() {
-        logger.info("我没任务了！");
-        return !taskQueue.isEmpty();
+        if (taskQueue.isEmpty()) {
+            logger.debug("我没任务了！");
+            return false;
+        }
+        logger.info("有任务了！");
+        return true;
     }
 
     /**

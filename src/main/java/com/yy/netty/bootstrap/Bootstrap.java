@@ -4,6 +4,7 @@ import com.yy.netty.channel.nio.NioEventLoop;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.InetSocketAddress;
 import java.nio.channels.SocketChannel;
 
 /**
@@ -50,7 +51,32 @@ public class Bootstrap {
      * @param inetPort
      */
     public void connect(String inetHost, int inetPort) {
+        connect(new InetSocketAddress(inetHost, inetPort));
+    }
 
+    private void connect(InetSocketAddress inetSocketAddress) {
+        doConnect(inetSocketAddress);
+    }
+
+    private void doConnect(InetSocketAddress inetSocketAddress) {
+        //注册channel的connect事件任务,随着第一个任务的提交，内部的单线程会正式启动
+        nioEventLoop.register(socketChannel, this.nioEventLoop);
+        //然后再提交连接服务器任务
+        doConnect0(inetSocketAddress);
+    }
+
+    private void doConnect0(InetSocketAddress inetSocketAddress) {
+        nioEventLoop.execute(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    socketChannel.connect(inetSocketAddress);
+                    logger.info("客户端channel连接至服务端成功！");
+                } catch (Exception e) {
+                    logger.error(e.getMessage());
+                }
+            }
+        });
     }
 
 

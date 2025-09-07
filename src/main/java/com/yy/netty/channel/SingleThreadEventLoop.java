@@ -52,7 +52,7 @@ public abstract class SingleThreadEventLoop extends SingleThreadEventExecutor {
                 @Override
                 public void run() {
                     register0(channel, nioEventLoop);
-                    logger.info("服务端的channel的accept事件已注册到多路复用器上了！:{}",Thread.currentThread().getName());
+                    logger.info("服务端的channel的accept事件已注册到多路复用器上了！ThreadName:{}",Thread.currentThread().getName());
                 }
             });
         }
@@ -77,7 +77,7 @@ public abstract class SingleThreadEventLoop extends SingleThreadEventExecutor {
                 @Override
                 public void run() {
                     register0(channel, nioEventLoop);
-                    logger.info("客户端的channel的connect事件已注册到多路复用器上了！:{}",Thread.currentThread().getName());
+                    logger.info("客户端的channel的connect事件已注册到多路复用器上了！ThreadName::{}",Thread.currentThread().getName());
                 }
             });
         }
@@ -102,7 +102,7 @@ public abstract class SingleThreadEventLoop extends SingleThreadEventExecutor {
                 @Override
                 public void run() {
                     register00(channel, nioEventLoop);
-                    logger.info("channel的read事件已注册到多路复用器上了！:{}",Thread.currentThread().getName());
+                    logger.info("channel的read事件已注册到多路复用器上了！ThreadName::{}",Thread.currentThread().getName());
                 }
             });
         }

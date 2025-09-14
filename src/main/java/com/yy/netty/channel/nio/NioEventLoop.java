@@ -1,9 +1,6 @@
 package com.yy.netty.channel.nio;
 
-import com.yy.netty.channel.EventLoopTaskQueueFactory;
-import com.yy.netty.channel.SelectStrategy;
-import com.yy.netty.channel.SelectStrategyFactory;
-import com.yy.netty.channel.SingleThreadEventLoop;
+import com.yy.netty.channel.*;
 import com.yy.netty.util.concurrent.RejectedExecutionHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,8 +10,10 @@ import java.nio.ByteBuffer;
 import java.nio.channels.*;
 import java.nio.channels.spi.SelectorProvider;
 import java.util.Iterator;
+import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.Executor;
+import java.util.concurrent.LinkedBlockingQueue;
 
 /**
  * @Description:NIO类型事件循环器（执行器），nio中selector各种事件，都由该类处理，对ServerSocketChannel和SocketChannel现在还是耦合在一起实现的，这块后续再改造
@@ -23,68 +22,81 @@ public class NioEventLoop extends SingleThreadEventLoop {
 
     private static final Logger logger = LoggerFactory.getLogger(NioEventLoop.class);
 
-    private final ServerSocketChannel serverSocketChannel;
+    private static int index = 0;
 
-    private final SocketChannel socketChannel;
+    // ServerSocketChannel和SocketChannel不会同时出现，这里后续优化
+    private ServerSocketChannel serverSocketChannel;
+
+    private SocketChannel socketChannel;
 
     // 多路复用选择器，一个NIO事件循环器对应一个多路复用选择器
-    private final Selector selector;
+    private Selector selector;
 
     // 多路复用选择器的提供者
-    private final SelectorProvider selectorProvider;
+    private SelectorProvider selectorProvider;
 
-    // 对应服务端的IO读eventLoop，这个这样写不好，但是先就这样处理了
-    private NioEventLoop worker;
+    // 对应服务端的IO读eventLoop的group，这个这样写不好，但是先就这样处理了
+    private EventLoopGroup workGroup;
 
-    /**
-     * @param serverSocketChannel
-     * @param socketChannel
-     * @Description:构造方法,这一版其实耦合的是比较重的，ServerSocketChannel和SocketChannel是需要使用时进行择一输入的，以实现区分创建的是服务端还是客户端的EventLoop，后面会改，这里先这样
-     */
-    public NioEventLoop(ServerSocketChannel serverSocketChannel, SocketChannel socketChannel) {
-        this(null, SelectorProvider.provider(), null, serverSocketChannel, socketChannel);
-    }
+    // 选择策略
+    private SelectStrategy selectStrategy;
+
+    // id
+    private int id;
 
     /**
      * 构造方法
      *
-     * @param executor            创建线程的执行器,该单线程执行器中的线程就是由这个执行器创建而来
-     * @param selectorProvider    selector的提供者
-     * @param queueFactory        任务队列工厂，创建一个任务队列，该任务队列中存放的是需要执行的任务
-     * @param serverSocketChannel 服务端SocketChannel
-     * @param socketChannel       客户端SocketChannel
+     * @param parent                    当前单线程事件循环器所属的事件循环器组
+     * @param executor                  创建线程的执行器,该单线程执行器中的线程就是由这个执行器创建而来
+     * @param selectorProvider          selector的提供者
+     * @param strategy                  选择策略
+     * @param rejectedExecutionHandler  拒绝策略
+     * @param queueFactory              任务队列工厂
      */
-    public NioEventLoop(Executor executor, SelectorProvider selectorProvider, EventLoopTaskQueueFactory queueFactory,
-                        ServerSocketChannel serverSocketChannel, SocketChannel socketChannel) {
-        super(executor, queueFactory);
+    public NioEventLoop(NioEventLoopGroup parent, Executor executor, SelectorProvider selectorProvider,
+                        SelectStrategy strategy, RejectedExecutionHandler rejectedExecutionHandler,
+                        EventLoopTaskQueueFactory queueFactory) {
+        super(parent, executor, false, newTaskQueue(queueFactory), rejectedExecutionHandler);
         if (selectorProvider == null) {
             throw new NullPointerException("selectorProvider");
         }
-        if (serverSocketChannel == null && socketChannel == null) {
-            throw new NullPointerException("serverSocketChannel and socketChannel can not be both null");
-        }
-        if (serverSocketChannel != null && socketChannel != null) {
-            throw new IllegalArgumentException("serverSocketChannel and socketChannel can not be both set, only one channel can be here! server or client!");
+        if (strategy == null) {
+            throw new NullPointerException("selectStrategy");
         }
         this.selectorProvider = selectorProvider;
-        this.serverSocketChannel = serverSocketChannel;
-        this.socketChannel = socketChannel;
         this.selector = openSelector();
+        this.selectStrategy = strategy;
+        logger.info("我是第{}个nioEventLoop", ++index);
+        id = index;
+        logger.info("work" + id);
     }
 
-    public NioEventLoop(NioEventLoopGroup parent,
-                        Executor executor,
-                        SelectorProvider selectorProvider,
-                        SelectStrategy strategy,
-                        RejectedExecutionHandler rejectedExecutionHandler,
-                        EventLoopTaskQueueFactory queueFactory) {
-        super();
+    private static Queue<Runnable> newTaskQueue(EventLoopTaskQueueFactory queueFactory) {
+        if (queueFactory == null) {
+            return new LinkedBlockingQueue<>(DEFAULT_MAX_PENDING_TASKS);
+        }
+        return queueFactory.newTaskQueue(DEFAULT_MAX_PENDING_TASKS);
     }
 
-
-    public void setWorker(NioEventLoop worker) {
-        this.worker = worker;
+    public void setServerSocketChannel(ServerSocketChannel serverSocketChannel) {
+        if (socketChannel != null) {
+            throw new IllegalStateException("socketChannel is already set, serverSocketChannel can not be set");
+        }
+        this.serverSocketChannel = serverSocketChannel;
     }
+
+    public void setSocketChannel(SocketChannel socketChannel) {
+        if (serverSocketChannel != null) {
+            throw new IllegalStateException("serverSocketChannel is already set, socketChannel can not be set");
+        }
+        this.socketChannel = socketChannel;
+    }
+
+    public void setWorkGroup(EventLoopGroup workGroup) {
+        this.workGroup = workGroup;
+    }
+
 
     // 得到该EventLoop的用于轮询的选择器
     private Selector openSelector() {
@@ -163,9 +175,7 @@ public class NioEventLoop extends SingleThreadEventLoop {
                 //channel已经连接成功
                 if (socketChannel.finishConnect()) {
                     //注册读事件
-//                    socketChannel.register(selector, SelectionKey.OP_READ);
-                    // 客户端也可以像服务端一样将IO读事件的处理用worker事件循环器处理
-                    worker.registerRead(socketChannel, worker);
+                    socketChannel.register(selector, SelectionKey.OP_READ);
                 }
             }
             //如果是读事件
@@ -189,8 +199,13 @@ public class NioEventLoop extends SingleThreadEventLoop {
                 logger.info("服务端处理IO连接事件");
                 SocketChannel socketChannel = serverSocketChannel.accept();
                 socketChannel.configureBlocking(false);
-                // 交给worker事件循环器处理，服务端的主eventLoop只处理连接事件，worker处理读事件
-                worker.registerRead(socketChannel, worker);
+                // 交给workerGroup处理，服务端的主eventLoopGroup只处理连接事件，workerGroup处理读事件
+                NioEventLoop workerNioEventLoop = (NioEventLoop) workGroup.next();
+                workerNioEventLoop.setServerSocketChannel(serverSocketChannel);
+                logger.info("+++++++++++++++++++++++++++++++++++++++++++服务端的IO读事件要注册到第{}work(nioEventLoop)上！", workerNioEventLoop.id);
+                // 注册读事件到自己
+                workerNioEventLoop.registerRead(socketChannel, workerNioEventLoop);
+                logger.info("服务器处理客户端连接事件成功:{}", socketChannel.toString());
                 socketChannel.write(ByteBuffer.wrap("我还不是netty，但我知道你上线了".getBytes()));
                 logger.info("服务器接收到客户端连接后，向客户端发送消息成功！");
             }

@@ -1,13 +1,19 @@
 package com.yy.netty.channel.nio;
 
-import com.yy.netty.channel.*;
+import com.yy.netty.channel.EventLoopGroup;
+import com.yy.netty.channel.EventLoopTaskQueueFactory;
+import com.yy.netty.channel.SelectStrategy;
+import com.yy.netty.channel.SingleThreadEventLoop;
 import com.yy.netty.util.concurrent.RejectedExecutionHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.channels.*;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
+import java.nio.channels.ServerSocketChannel;
+import java.nio.channels.SocketChannel;
 import java.nio.channels.spi.SelectorProvider;
 import java.util.Iterator;
 import java.util.Queue;
@@ -47,12 +53,12 @@ public class NioEventLoop extends SingleThreadEventLoop {
     /**
      * 构造方法
      *
-     * @param parent                    当前单线程事件循环器所属的事件循环器组
-     * @param executor                  创建线程的执行器,该单线程执行器中的线程就是由这个执行器创建而来
-     * @param selectorProvider          selector的提供者
-     * @param strategy                  选择策略
-     * @param rejectedExecutionHandler  拒绝策略
-     * @param queueFactory              任务队列工厂
+     * @param parent                   当前单线程事件循环器所属的事件循环器组
+     * @param executor                 创建线程的执行器,该单线程执行器中的线程就是由这个执行器创建而来
+     * @param selectorProvider         selector的提供者
+     * @param strategy                 选择策略
+     * @param rejectedExecutionHandler 拒绝策略
+     * @param queueFactory             任务队列工厂
      */
     public NioEventLoop(NioEventLoopGroup parent, Executor executor, SelectorProvider selectorProvider,
                         SelectStrategy strategy, RejectedExecutionHandler rejectedExecutionHandler,
@@ -119,7 +125,7 @@ public class NioEventLoop extends SingleThreadEventLoop {
     @Override
     @SuppressWarnings("InfiniteLoopStatement")
     protected void run() {
-        for (;;) {
+        for (; ; ) {
             try {
                 //没有事件就阻塞在这里,跳出select阻塞的条件是：有IO事件到来 或者 任务队列中有任务
                 select();
@@ -212,7 +218,7 @@ public class NioEventLoop extends SingleThreadEventLoop {
             //读事件
             if (key.isReadable()) {
                 logger.info("服务端处理IO读事件");
-                SocketChannel channel = (SocketChannel)key.channel();
+                SocketChannel channel = (SocketChannel) key.channel();
                 ByteBuffer byteBuffer = ByteBuffer.allocate(1024);
                 int len = channel.read(byteBuffer);
                 if (len == -1) {
@@ -223,7 +229,7 @@ public class NioEventLoop extends SingleThreadEventLoop {
                 byte[] buffer = new byte[len];
                 byteBuffer.flip();
                 byteBuffer.get(buffer);
-                logger.info("服务端收到客户端发送的数据:{}",new String(buffer));
+                logger.info("服务端收到客户端发送的数据:{}", new String(buffer));
             }
         }
     }
@@ -231,7 +237,7 @@ public class NioEventLoop extends SingleThreadEventLoop {
     private void select() throws IOException {
         Selector selector = this.selector;
         //这里是一个死循环, 直到有IO事件到来或者任务队列中有任务, 不然就需要用循环来实现阻塞的效果
-        for (;;) {
+        for (; ; ) {
             //如果没有就绪事件，就在这里阻塞3秒
             int selectedKeyNum = selector.select(3000);
             //如果有事件或者单线程执行器中有任务待执行，就退出循环

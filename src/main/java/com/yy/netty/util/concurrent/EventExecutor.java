@@ -8,4 +8,10 @@ public interface EventExecutor extends EventExecutorGroup {
     @Override
     EventExecutor next();
 
+    // 当前执行器所归属的EventExecutorGroup
+    EventExecutorGroup parent();
+
+    // 判断传入的线程是否是当前执行器的线程
+    boolean inEventLoop(Thread thread);
+
 }

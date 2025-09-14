@@ -1,19 +1,19 @@
 package com.yy.netty.util.concurrent;
 
-import com.yy.netty.channel.EventLoopTaskQueueFactory;
+import com.yy.netty.util.internal.ObjectUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Queue;
 import java.util.concurrent.Executor;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 
 /**
- * @Description:单线程执行器，实际上这个类就是一个单线程的线程池，netty中所有任务都是被该执行器执行的 既然是执行器(虽然该执行器中只有一个无限循环的线程工作)，但执行器应该具备的属性也不可少，比如任务队列，拒绝策略等等
+ * @Description:单线程执行器，实际上这个类就是一个单线程的线程池，netty中所有任务都是被该执行器执行的，既然是执行器(虽然该执行器中只有一个无限循环的线程工作)，但执行器应该具备的属性也不可少，比如任务队列，拒绝策略等等
  */
-public abstract class SingleThreadEventExecutor implements Executor {
+public abstract class SingleThreadEventExecutor implements EventExecutor {
 
     private static final Logger logger = LoggerFactory.getLogger(SingleThreadEventExecutor.class);
 
@@ -48,25 +48,28 @@ public abstract class SingleThreadEventExecutor implements Executor {
     // 线程是否被中断的信号，在线程执行逻辑中会有地方使用该变量进行判断，以达到中断线程的效果
     private volatile boolean interrupted;
 
+    // 该执行器所归属的执行器组
+    private EventExecutorGroup parent;
+
+    private boolean addTaskWakesUp;
 
     /**
-     * 创建单线程执行器
+     * 构造方法
      *
-     * @param executor  创建线程的执行器,该单线程执行器中的线程就是由这个执行器创建而来
-     * @param queueFactory  任务队列工厂，该工厂会创建任务队列
-     * @param threadFactory 线程工厂，负责创建线程
+     * @param parent          该执行器所归属的执行器组
+     * @param executor        线程创建执行器，该执行器的工作线程由该执行器创建
+     * @param addTaskWakesUp
+     * @param taskQueue       任务队列
+     * @param rejectedHandler 拒绝策略
      */
-    protected SingleThreadEventExecutor(Executor executor, EventLoopTaskQueueFactory queueFactory, ThreadFactory threadFactory) {
-        this(executor, queueFactory, threadFactory, RejectedExecutionHandlers.reject());
+    protected SingleThreadEventExecutor(EventExecutorGroup parent, Executor executor, boolean addTaskWakesUp, Queue<Runnable> taskQueue, RejectedExecutionHandler rejectedHandler) {
+        this.parent = parent;
+        this.executor = executor;
+        this.addTaskWakesUp = addTaskWakesUp;
+        this.taskQueue = ObjectUtil.checkNotNull(taskQueue, "taskQueue");
+        this.rejectedExecutionHandler = ObjectUtil.checkNotNull(rejectedHandler, "rejectedHandler");
     }
 
-    protected SingleThreadEventExecutor(Executor executor, EventLoopTaskQueueFactory queueFactory, ThreadFactory threadFactory, RejectedExecutionHandler rejectedExecutionHandler) {
-        if (executor == null) {
-            this.executor = new ThreadPerTaskExecutor(threadFactory);
-        }
-        this.taskQueue = queueFactory == null ? newTaskQueue(DEFAULT_MAX_PENDING_TASKS) : queueFactory.newTaskQueue(DEFAULT_MAX_PENDING_TASKS);
-        this.rejectedExecutionHandler = rejectedExecutionHandler;
-    }
 
     protected Queue<Runnable> newTaskQueue(int maxPendingTasks) {
         return new LinkedBlockingQueue<Runnable>(maxPendingTasks);
@@ -154,19 +157,17 @@ public abstract class SingleThreadEventExecutor implements Executor {
     }
 
     /**
-     * @Description:判断传入的线程是否是当前执行器的线程
-     *
      * @param thread
      * @return
+     * @Description:判断传入的线程是否是当前执行器的线程
      */
     public boolean inEventLoop(Thread thread) {
         return thread == this.thread;
     }
 
     /**
-     * @Description:判断任务队列中是否有任务
-     *
      * @return
+     * @Description:判断任务队列中是否有任务
      */
     protected boolean hasTasks() {
         if (taskQueue.isEmpty()) {
@@ -191,7 +192,7 @@ public abstract class SingleThreadEventExecutor implements Executor {
             return;
         }
 
-        for (;;) {
+        for (; ; ) {
             //执行任务队列中的任务
             safeExecute(task);
             //执行完毕之后，拉取下一个任务，如果为null就直接返回
@@ -220,7 +221,7 @@ public abstract class SingleThreadEventExecutor implements Executor {
      */
     protected void interruptThread() {
         Thread currentThread = this.thread;
-        if (currentThread != null) {
+        if (currentThread == null) {
             // 将中断标记进行记录，在启动单线程的时候会判断该标记，如果标记为true，则调用interrupt方法，以保持不同时序时中断的效果
             interrupted = true;
         } else {
@@ -230,5 +231,18 @@ public abstract class SingleThreadEventExecutor implements Executor {
         }
     }
 
+    @Override
+    public void shutdownGracefully() {
 
+    }
+
+    @Override
+    public boolean isTerminated() {
+        return false;
+    }
+
+    @Override
+    public void awaitTermination(Integer integer, TimeUnit timeUnit) throws InterruptedException {
+
+    }
 }

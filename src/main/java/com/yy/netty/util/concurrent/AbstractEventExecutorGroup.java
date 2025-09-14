@@ -1,5 +1,7 @@
 package com.yy.netty.util.concurrent;
 
+import java.util.concurrent.TimeUnit;
+
 /**
  * @Description:事件执行组的抽象默认实现
  */
@@ -13,6 +15,21 @@ public abstract class AbstractEventExecutorGroup implements EventExecutorGroup {
     @Override
     public void execute(Runnable command) {
         next().execute(command);
+    }
+
+    @Override
+    public boolean isTerminated() {
+        return false;
+    }
+
+    @Override
+    public void awaitTermination(Integer integer, TimeUnit timeUnit) throws InterruptedException {
+
+    }
+
+    @Override
+    public void shutdownGracefully() {
+
     }
 
 }

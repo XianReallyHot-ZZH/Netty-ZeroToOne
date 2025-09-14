@@ -1,7 +1,10 @@
 package com.yy.netty.channel.nio;
 
 import com.yy.netty.channel.EventLoopTaskQueueFactory;
+import com.yy.netty.channel.SelectStrategy;
+import com.yy.netty.channel.SelectStrategyFactory;
 import com.yy.netty.channel.SingleThreadEventLoop;
+import com.yy.netty.util.concurrent.RejectedExecutionHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -67,6 +70,15 @@ public class NioEventLoop extends SingleThreadEventLoop {
         this.serverSocketChannel = serverSocketChannel;
         this.socketChannel = socketChannel;
         this.selector = openSelector();
+    }
+
+    public NioEventLoop(NioEventLoopGroup parent,
+                        Executor executor,
+                        SelectorProvider selectorProvider,
+                        SelectStrategy strategy,
+                        RejectedExecutionHandler rejectedExecutionHandler,
+                        EventLoopTaskQueueFactory queueFactory) {
+        super();
     }
 
 

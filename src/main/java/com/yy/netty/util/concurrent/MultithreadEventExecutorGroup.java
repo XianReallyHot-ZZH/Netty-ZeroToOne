@@ -20,7 +20,7 @@ public abstract class MultithreadEventExecutorGroup extends AbstractEventExecuto
      *
      * @param nThreads          线程数，即执行器的个数，每个执行器都是一个单线程的试执行器
      * @param threadFactory     线程工厂
-     * @param args
+     * @param args              SelectorProvider,selectStrategyFactory,RejectedExecutionHandler
      */
     protected MultithreadEventExecutorGroup(int nThreads, ThreadFactory threadFactory, Object... args) {
         this(nThreads, threadFactory == null ? null : new ThreadPerTaskExecutor(threadFactory), args);
@@ -31,7 +31,7 @@ public abstract class MultithreadEventExecutorGroup extends AbstractEventExecuto
      *
      * @param nThreads  线程数，即执行器的个数，每个执行器都是一个单线程的试执行器
      * @param executor  线程创建执行器
-     * @param args
+     * @param args      SelectorProvider,selectStrategyFactory,RejectedExecutionHandler
      */
     protected MultithreadEventExecutorGroup(int nThreads, Executor executor, Object... args) {
         this(nThreads, executor, DefaultEventExecutorChooserFactory.INSTANCE, args);
@@ -43,7 +43,7 @@ public abstract class MultithreadEventExecutorGroup extends AbstractEventExecuto
      * @param nThreads          线程数，即执行器的个数，每个执行器都是一个单线程的试执行器
      * @param executor          线程创建执行器
      * @param chooserFactory    执行器选择器工厂
-     * @param args
+     * @param args              SelectorProvider,selectStrategyFactory,RejectedExecutionHandler，EventLoopTaskQueueFactory
      */
     protected MultithreadEventExecutorGroup(int nThreads, Executor executor, EventExecutorChooserFactory chooserFactory, Object... args) {
         if (nThreads <= 0) {
@@ -104,8 +104,8 @@ public abstract class MultithreadEventExecutorGroup extends AbstractEventExecuto
     /**
      * 创建执行器.交由子类实现，由子类决定创建具体什么类型的执行器
      *
-     * @param executor
-     * @param args
+     * @param executor      线程创建执行器
+     * @param args          SelectorProvider,selectStrategyFactory,RejectedExecutionHandler，EventLoopTaskQueueFactory
      * @return
      * @throws Exception
      */

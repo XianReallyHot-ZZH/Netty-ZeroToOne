@@ -1,7 +1,7 @@
 package com.yy.netty.bootstrap;
 
+import com.yy.netty.channel.EventLoopGroup;
 import com.yy.netty.channel.nio.NioEventLoop;
-import com.yy.netty.channel.nio.NioEventLoopGroup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,31 +19,20 @@ public class Bootstrap {
 
     private SocketChannel socketChannel;
 
+    private EventLoopGroup workerGroup;
+
     public Bootstrap() {
 
     }
 
-    public Bootstrap group(NioEventLoopGroup workerGroup) {
-
-
-
-        return this;
-    }
-
-
-    /**
-     * 设置NIO事件处理器
-     *
-     * @param nioEventLoop
-     * @return
-     */
-    public Bootstrap nioEventLoop(NioEventLoop nioEventLoop) {
-        this.nioEventLoop = nioEventLoop;
+    public Bootstrap group(EventLoopGroup workerGroup) {
+        this.workerGroup = workerGroup;
         return this;
     }
 
     /**
      * 设置SocketChannel
+     * 注意：这个方法有点并发问题，调用该方法时为了在doConnect方法中拿到要处理的channel对象，并发时是有问题的，先不处理了
      *
      * @param socketChannel
      * @return
@@ -68,13 +57,16 @@ public class Bootstrap {
     }
 
     private void doConnect(InetSocketAddress inetSocketAddress) {
+        //获得单线程执行器
+        nioEventLoop = (NioEventLoop) workerGroup.next().next();
+        nioEventLoop.setSocketChannel(socketChannel);
         //注册channel的connect事件任务,随着第一个任务的提交，内部的单线程会正式启动
         nioEventLoop.register(socketChannel, this.nioEventLoop);
         //然后再提交连接服务器任务
-        doConnect0(inetSocketAddress);
+        doConnect0(inetSocketAddress, nioEventLoop);
     }
 
-    private void doConnect0(InetSocketAddress inetSocketAddress) {
+    private void doConnect0(InetSocketAddress inetSocketAddress, NioEventLoop nioEventLoop) {
         nioEventLoop.execute(new Runnable() {
             @Override
             public void run() {

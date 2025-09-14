@@ -1,5 +1,6 @@
 package com.yy.netty.bootstrap;
 
+import com.yy.netty.channel.EventLoopGroup;
 import com.yy.netty.channel.nio.NioEventLoop;
 import com.yy.netty.channel.nio.NioEventLoopGroup;
 import org.slf4j.Logger;
@@ -15,34 +16,33 @@ public class ServerBootstrap {
 
     private static final Logger logger = LoggerFactory.getLogger(ServerBootstrap.class);
 
-    // 当前引导类负责引导的nio类型事件循环器（执行器）
-    private NioEventLoop nioEventLoop;
-
     // 当前引导类负责引导的serverSocketChannel网络Channel对象
     private ServerSocketChannel serverSocketChannel;
+
+    // 服务端 boss事件循环组,负责处理IO accept事件（连接事件）
+    private EventLoopGroup bossGroup;
+
+    // 服务端 work事件循环组, 负责处理IO read/write事件（读写事件）
+    private EventLoopGroup workGroup;
+
 
     public ServerBootstrap() {
 
     }
 
-    public ServerBootstrap group(NioEventLoopGroup bossGroup, NioEventLoopGroup workerGroup) {
-
-
-
-        return this;
-    }
-
-
     /**
-     * 设置nioEventLoop
+     * 设置boss和work线程组
      *
-     * @param nioEventLoop
+     * @param bossGroup
+     * @param workerGroup
      * @return
      */
-    public ServerBootstrap nioEventLoop(NioEventLoop nioEventLoop) {
-        this.nioEventLoop = nioEventLoop;
+    public ServerBootstrap group(EventLoopGroup bossGroup, EventLoopGroup workerGroup) {
+        this.bossGroup = bossGroup;
+        this.workGroup = workerGroup;
         return this;
     }
+
 
     /**
      * 设置serverSocketChannel
@@ -72,19 +72,23 @@ public class ServerBootstrap {
     }
 
     private void doBind(InetSocketAddress inetSocketAddress) {
+        // 得到boss事件循环组中的事件执行器，也就是单线程执行器
+        NioEventLoop nioEventLoop = (NioEventLoop) bossGroup.next().next();
+        nioEventLoop.setServerSocketChannel(serverSocketChannel);
+        nioEventLoop.setWorkGroup(workGroup);
         // 对服务端channel注册accept事件,在这里的第一个accept事件会顺便启动单线程
-        nioEventLoop.register(serverSocketChannel, this.nioEventLoop);
+        nioEventLoop.register(serverSocketChannel, nioEventLoop);
         // channel进行端口绑定，注册是异步的实现，所以这里绑定也要成为异步实现，保证在单线程中注册accept事件要早于绑定端口行为
-        doBind0(inetSocketAddress);
+        doBind0(inetSocketAddress, nioEventLoop);
 
     }
 
     /**
-     * @Description:这里把绑定端口号封装成一个runnable，提交到单线程执行器的任务队列，绑定端口号仍然由单线程执行器完成,保证在单线程中注册accept事件要早于绑定端口行为
-     *
      * @param inetSocketAddress
+     * @param nioEventLoop
+     * @Description:这里把绑定端口号封装成一个runnable，提交到单线程执行器的任务队列，绑定端口号仍然由单线程执行器完成,保证在单线程中注册accept事件要早于绑定端口行为
      */
-    private void doBind0(InetSocketAddress inetSocketAddress) {
+    private void doBind0(InetSocketAddress inetSocketAddress, NioEventLoop nioEventLoop) {
         nioEventLoop.execute(new Runnable() {
             @Override
             public void run() {

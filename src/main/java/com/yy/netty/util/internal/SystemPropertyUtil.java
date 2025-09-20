@@ -1,5 +1,8 @@
 package com.yy.netty.util.internal;
 
+import java.security.AccessController;
+import java.security.PrivilegedAction;
+
 public class SystemPropertyUtil {
 
     /**
@@ -45,7 +48,7 @@ public class SystemPropertyUtil {
      * {@code def} if there's no such property or if an access to the
      * specified property is not allowed.
      */
-    private static String get(String key, String def) {
+    public static String get(String key, String def) {
         if (key == null) {
             throw new NullPointerException("key");
         }
@@ -57,8 +60,16 @@ public class SystemPropertyUtil {
 
         // 访问获取系统参数
         try {
-            // Java 17 中安全管理器已弃用，可直接获取系统属性
-            value = System.getProperty(key);
+            if (System.getSecurityManager() == null) {
+                value = System.getProperty(key);
+            } else {
+                value = AccessController.doPrivileged(new PrivilegedAction<String>() {
+                    @Override
+                    public String run() {
+                        return System.getProperty(key);
+                    }
+                });
+            }
         } catch (SecurityException e) {
             throw new RuntimeException(e.getMessage());
         }

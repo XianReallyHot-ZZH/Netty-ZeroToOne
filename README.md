@@ -1,6 +1,8 @@
 # Netty-ZeroToOne
 从零到一手搓netty
 
+**环境要求**：java8
+
 ## version-01
 * **目标**：框架异步化初步抽象，初步构建Reactor模型；
 * **设计与实现**：通过SingleThreadEventExecutor、SingleThreadEventLoop、NioEventLoop三层抽象，实现对事件的独立单线程异步处理；
@@ -30,6 +32,7 @@
 
 ## version-03
 * **目标**：构建线程间协调工具体系promise及其默认实现DefaultPromise
+* **番外（顺手的事）**：手搓java源码FutureTask，感受java对线程协作工具的设计思路
 * **设计与实现**：
 * **功能与效果**：
 

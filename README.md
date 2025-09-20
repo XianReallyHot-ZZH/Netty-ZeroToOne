@@ -8,7 +8,7 @@
 
 ## version-02
 * **目标**：增加Group工作组的概念，提升框架并发处理能力
-* **设计与实现**：在version-01版本的基础上抽象Group概念，以组的形式管理 [EventLoop](file://D:\Developer\Github\my-projects\Netty-ZeroToOne\src\main\java\com\yy\netty\channel\EventLoop.java#L7-L17)，具体抽象层次如下所示：
+* **设计与实现**：在version-01版本的基础上抽象Group概念，以组的形式管理EventLoop，具体抽象层次如下所示：
 
 <div style="display: flex; justify-content: space-around; align-items: center;">
   <div align="center">
@@ -26,9 +26,12 @@
 * **功能与效果**：
   * 服务端支持设置bossGroup和workGroup，以多线程组的方式分别处理服务端IO连接事件和IO读写事件；
   * 客户端支持设置workGroup，以多线程组方式处理客户端IO读写事件；
-* **遗留问题**：[NioEventLoop没有区分服务端和客户端，现在还是耦合在一起处理的，后续考虑做分离。
+* **遗留问题**：NioEventLoop没有区分服务端和客户端，现在还是耦合在一起处理的，后续考虑做分离。
 
-
+## version-03
+* **目标**：构建线程间协调工具体系promise及其默认实现DefaultPromise
+* **设计与实现**：
+* **功能与效果**：
 
 
 

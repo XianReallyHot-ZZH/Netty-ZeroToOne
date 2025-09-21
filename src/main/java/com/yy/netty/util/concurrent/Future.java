@@ -2,6 +2,10 @@ package com.yy.netty.util.concurrent;
 
 import java.util.concurrent.TimeUnit;
 
+/**
+ * @Description:netty中重写了该接口，添加了一些重要的方法
+ * @param <V>
+ */
 public interface Future<V> extends java.util.concurrent.Future<V> {
 
     /**

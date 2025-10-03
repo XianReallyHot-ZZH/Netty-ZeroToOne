@@ -45,7 +45,7 @@ public interface Promise<V> extends Future<V> {
      */
     boolean setUncancellable();
 
-    /******************************************** 一下四个方法是为了 重塑返回对象为Promise ********************************************/
+    /******************************************** 一下八个方法是为了 重塑返回对象为Promise ********************************************/
     @Override
     Promise<V> await() throws InterruptedException;
 
@@ -57,4 +57,17 @@ public interface Promise<V> extends Future<V> {
 
     @Override
     Promise<V> syncUninterruptibly();
+
+    @Override
+    Promise<V> addListener(GenericFutureListener<? extends Future<? super V>> listener);
+
+    @Override
+    Promise<V> addListeners(GenericFutureListener<? extends Future<? super V>>... listeners);
+
+    @Override
+    Promise<V> removeListener(GenericFutureListener<? extends Future<? super V>> listener);
+
+    @Override
+    Promise<V> removeListeners(GenericFutureListener<? extends Future<? super V>>... listeners);
+
 }

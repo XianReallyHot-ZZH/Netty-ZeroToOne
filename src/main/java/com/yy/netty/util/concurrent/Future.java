@@ -117,4 +117,37 @@ public interface Future<V> extends java.util.concurrent.Future<V> {
     @Override
     boolean cancel(boolean mayInterruptIfRunning);
 
+    /**
+     * 添加监听器
+     *
+     * @param listener
+     * @return
+     */
+    Future<V> addListener(GenericFutureListener<? extends Future<? super V>> listener);
+
+    /**
+     * 添加多个监听器
+     *
+     * @param listeners
+     * @return
+     */
+    Future<V> addListeners(GenericFutureListener<? extends Future<? super V>>... listeners);
+
+    /**
+     * 移除监听器
+     *
+     * @param listener
+     * @return
+     */
+    Future<V> removeListener(GenericFutureListener<? extends Future<? super V>> listener);
+
+    /**
+     * 移除多个监听器
+     *
+     * @param listeners
+     * @return
+     */
+    Future<V> removeListeners(GenericFutureListener<? extends Future<? super V>>... listeners);
+
+
 }

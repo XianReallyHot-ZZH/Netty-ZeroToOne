@@ -61,7 +61,7 @@ public interface Future<V> extends java.util.concurrent.Future<V> {
 
     /**
      * 有限同步阻塞等待，等待线程支持中断抛出
-     * 返回结果：true:任务完成done，false:任务未完成
+     * 返回结果：true:任务完成done(任务正常完成、任务异常结束都算done)，false:任务未完成
      *
      * @param timeout
      * @param unit

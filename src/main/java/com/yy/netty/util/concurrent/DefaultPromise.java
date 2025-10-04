@@ -9,22 +9,20 @@ import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import static com.yy.netty.util.internal.ObjectUtil.checkNotNull;
 
 /**
- * @Description:promise的默认实现类,是一个很重要的线程协作工具
- * <p>
- *     在netty中，这个可以看作一个不完整的futuretask，他们二者的区别在于:
- *     futuretask可以作为一个任务被线程或线程池执行，不能手动设置结果,futuretask对任务的执行过程和结果都要负责
- *     而该类则不能当做任务被线程或线程池执行，但可以手动把外部线程得到的结果赋值给result属性，该类只对结果负责，通过结果协调线程
- * </p>
- * <p>
- *     任务状态流转总结：
- *     1、result为null，说明任务刚开始或者在执行中；
- *     2、result为SUCCESS，说明任务已经成功完成,对应任务返回为null的情况；其他任务返回不是null的成功情况，result对应的就是V类型的真实结果
- *     3、result为UNCANCELLABLE，说明当前任务的状态为不能被取消，表达的只是一种状态，不是结果，任务还未结束；
- *     4、result为CauseHolder，说明任务执行中出现了异常，异常有两种可能性：（1）主动提前取消，对应CancellableException；（2）其他过程异常
- *     以上result一旦被设置为SUCCESS，V，CauseHolder，代表任务结束了；result为其他值时，代表的是一种状态，任务还在继续；
- * </p>
- *
  * @param <V>
+ * @Description:promise的默认实现类,是一个很重要的线程协作工具 <p>
+ * 在netty中，这个可以看作一个不完整的futuretask，他们二者的区别在于:
+ * futuretask可以作为一个任务被线程或线程池执行，不能手动设置结果,futuretask对任务的执行过程和结果都要负责
+ * 而该类则不能当做任务被线程或线程池执行，但可以手动把外部线程得到的结果赋值给result属性，该类只对结果负责，通过结果协调线程
+ * </p>
+ * <p>
+ * 任务状态流转总结：
+ * 1、result为null，说明任务刚开始或者在执行中；
+ * 2、result为SUCCESS，说明任务已经成功完成,对应任务返回为null的情况；其他任务返回不是null的成功情况，result对应的就是V类型的真实结果
+ * 3、result为UNCANCELLABLE，说明当前任务的状态为不能被取消，表达的只是一种状态，不是结果，任务还未结束；
+ * 4、result为CauseHolder，说明任务执行中出现了异常，异常有两种可能性：（1）主动提前取消，对应CancellableException；（2）其他过程异常
+ * 以上result一旦被设置为SUCCESS，V，CauseHolder，代表任务结束了；result为其他值时，代表的是一种状态，任务还在继续；
+ * </p>
  */
 public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
 
@@ -135,8 +133,8 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
         try {
             executor.execute(runnable);
         } catch (Throwable t) {
-            logger.warn("Failed to submit a listener notification task.", t);
-//            throw new RuntimeException("Failed to submit a listener notification task. Event loop shut down?", t);
+//            logger.warn("Failed to submit a listener notification task.", t);
+            throw new RuntimeException("Failed to submit a listener notification task. Event loop shut down?", t);
         }
     }
 
@@ -159,11 +157,46 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
         }
         // 走到这里，说明当前线程拿到了待通知的监听器，那么就需要去遍历监听器，并执行监听器的回调，
         // 这里面有一个特别极端的情况，就是在监听器回调的过程中，有新的监听器注册，那么就会导致listeners属性被赋值，这时候就要求再来一次循环，再次完成对监听器的回调
-        for (;;) {
-
+        for (; ; ) {
+            //如果listerers是DefaultFutureListeners该类型，则说明有多个监听器，是个监听器数组，要执行 通知多个数组的方法
+            if (listeners instanceof DefaultFutureListeners) {
+                notifyListeners0((DefaultFutureListeners) listeners);
+            } else {
+                //说明只有一个监听器。
+                notifyListeners0(this, (GenericFutureListener<?>)listeners);
+            }
+            //通知完成后继续上锁
+            synchronized (this) {
+                //这里再次加锁是因为方法结束之后notifyingListeners的值要重置。
+                if (this.listeners == null) {
+                    notifyingListeners = false;
+                    //重置之后退出即可
+                    return;
+                }
+                // 走到这里，说明listeners属性被赋值了，这时候需要再次对监听器进行回调
+                listeners = this.listeners;
+                this.listeners = null;
+            }
         }
+    }
 
+    private void notifyListeners0(DefaultFutureListeners listeners) {
+        //得到监听器数组
+        GenericFutureListener<? extends Future<?>>[] a = listeners.listeners();
+        //遍历数组，一次通知监听器执行方法
+        int size = listeners.size();
+        for (int i = 0; i < size; i++) {
+            notifyListeners0(this, a[i]);
+        }
+    }
 
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private void notifyListeners0(Future future, GenericFutureListener listener) {
+        try {
+            listener.operationComplete(future);
+        } catch (Throwable t) {
+            throw new RuntimeException(t);
+        }
     }
 
     /**

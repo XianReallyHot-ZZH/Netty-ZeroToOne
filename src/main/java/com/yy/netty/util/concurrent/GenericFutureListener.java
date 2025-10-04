@@ -2,6 +2,11 @@ package com.yy.netty.util.concurrent;
 
 import java.util.EventListener;
 
+/**
+ * 通用future监听器
+ *
+ * @param <F>
+ */
 public interface GenericFutureListener<F extends Future<?>> extends EventListener {
 
     /**

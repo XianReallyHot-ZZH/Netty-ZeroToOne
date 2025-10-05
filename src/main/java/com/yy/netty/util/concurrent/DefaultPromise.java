@@ -9,6 +9,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
 import static com.yy.netty.util.internal.ObjectUtil.checkNotNull;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 /**
  * @param <V>
@@ -394,27 +395,123 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
         return this;
     }
 
+    /**
+     * 支持超时时间的await
+     *
+     * @param timeout
+     * @param unit
+     * @return  true:任务结束；false:任务未结束
+     * @throws InterruptedException
+     */
     @Override
     public boolean await(long timeout, TimeUnit unit) throws InterruptedException {
-
-
-
-        return false;
+        return await0(unit.toNanos(timeout), true);
     }
 
     @Override
     public boolean await(long timeoutMillis) throws InterruptedException {
-        return false;
+        return await0(MILLISECONDS.toNanos(timeoutMillis), true);
     }
 
     @Override
     public boolean awaitUninterruptibly(long timeout, TimeUnit unit) {
-        return false;
+        try {
+            return await0(unit.toNanos(timeout), false);
+        } catch (InterruptedException e) {
+            //不会抛出异常
+            throw new InternalError();
+        }
     }
 
     @Override
     public boolean awaitUninterruptibly(long timeoutMillis) {
-        return false;
+        try {
+            return await0(MILLISECONDS.toNanos(timeoutMillis), false);
+        } catch (InterruptedException e) {
+            throw new InternalError();
+        }
+    }
+
+    /**
+     * 真正让线程阻塞等待的方法
+     * 返回结果，true:任务结束；false:任务未结束
+     *
+     * @param timeoutNanos
+     * @param interruptable
+     * @return
+     */
+    private boolean await0(long timeoutNanos, boolean interruptable) throws InterruptedException {
+        // 任务结束则直接返回
+        if (isDone()) {
+            return true;
+        }
+
+        //传入的时间小于0,则无需等待，直接返回任务是否结束
+        if (timeoutNanos <= 0) {
+            return isDone();
+        }
+
+        //interruptable为true则允许抛出中断异常，为false则不允许，判断当前线程是否被中断了
+        //如果都为true则抛出中断异常
+        if (interruptable && Thread.interrupted()) {
+            throw new InterruptedException();
+        }
+
+        //检查死锁
+        checkDeadLock();
+
+        //获取当前纳秒时间
+        long startTime = System.nanoTime();
+        //用户设置的等待时间
+        long waitTime = timeoutNanos;
+        //是否出现中断异常的标记
+        boolean interrupted = false;
+
+        try {
+            // 避免虚假唤醒
+            for (;;) {
+                synchronized (this) {
+                    //再次判断是否执行完成，如果结束，可直接返回
+                    if (isDone()) {
+                        return true;
+                    }
+                    //如果没有执行完成，则开始阻塞等待，阻塞线程数加一
+                    incWaiters();
+                    // 进行阻塞
+                    try {
+                        wait(waitTime / 1_000_000, (int) (waitTime % 1_000_000));
+                    } catch (InterruptedException e) {
+                        if (interruptable) {
+                            // 如果是可中断的，那么直接抛出
+                            throw e;
+                        } else {
+                            // 如果不可中断的，那么记录下中断状态，等待结束的时候恢复中断状态
+                            interrupted = true;
+                        }
+                    } finally {
+                        //阻塞线程数减一
+                        decWaiters();
+                    }
+                }
+                //走到这里说明线程被唤醒了
+                if (isDone()) {
+                    return true;
+                } else {
+                    //可能是虚假唤醒。
+                    //得到新的等待时间，如果等待时间小于0，表示已经阻塞了用户设定的等待时间。如果waitTime大于0，则继续循环
+                    waitTime = timeoutNanos - (System.nanoTime() - startTime);
+                    if (waitTime <= 0) {
+                        // 超过等待时间了，任务还没结束，返回false
+                        return false;
+                    }
+                }
+            }
+        } finally {
+            //退出方法前判断是否要给执行任务的线程添加中断标记
+            if (interrupted) {
+                Thread.currentThread().interrupt();
+            }
+        }
     }
 
     /**

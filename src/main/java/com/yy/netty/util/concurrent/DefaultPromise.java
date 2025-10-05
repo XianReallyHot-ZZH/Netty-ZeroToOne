@@ -1,5 +1,6 @@
 package com.yy.netty.util.concurrent;
 
+import com.yy.netty.util.internal.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -291,19 +292,113 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
         return result instanceof CauseHolder && ((CauseHolder) result).cause instanceof CancellationException;
     }
 
-
+    /**
+     * 在任务还未结束的时候，调用该方法的线程会被阻塞,支持当前线程抛出中断异常
+     * 该方法在AbstractFuture抽象类中被调用了，当执行还没有结果的时候，外部线程调用get方法时，会进一步调用该方法进行阻塞。
+     *
+     * @return
+     * @throws InterruptedException
+     */
     @Override
     public Promise<V> await() throws InterruptedException {
-        return null;
+        //如果已经执行完成，直接返回即可
+        if (isDone()) {
+            return this;
+        }
+
+        // 如果当前线程中断，支持直接抛出异常
+        if (Thread.interrupted()) {
+            throw new InterruptedException();
+        }
+
+        //检查是否死锁，如果是死锁直接抛出异常，在这里可以进一步思考一下，哪些情况会发生死锁
+        //如果熟悉了netty之后，就会发现，凡事结果要赋值到promise的任务都是由netty中的单线程执行器来执行的
+        //执行每个任务的执行器是和channel绑定的。如果某个执行器正在执行任务，但是还未获得结果，这时候该执行器
+        //又来获取结果，一个线程怎么能同时执行任务又要唤醒自己呢，所以必然会产生死锁
+        checkDeadLock();
+        //wait要和synchronized一起使用，在futurtask的源码中，这里使用了LockSupport.park方法。
+        synchronized (this) {
+            // 再一次判断任务是否执行完成，如果完成直接返回，不成功进入循环，这里循环是为了解决线程虚假唤醒问题
+            while (!isDone()) {
+                //waiters字段加一，记录在此阻塞的线程数量
+                incWaiters();
+                try {
+                    //释放锁并等待，直到任务结束，由其他线程来唤醒这里
+                    wait();
+                    // 这里没有捕获线程中断异常，为的就是支持中断异常的抛出
+                } finally {
+                    //等待结束waiters字段减一
+                    decWaiters();
+                }
+            }
+        }
+
+        return this;
     }
 
+    private void decWaiters() {
+        --waiters;
+    }
+
+    private void incWaiters() {
+        if (waiters == Short.MAX_VALUE) {
+            throw new IllegalStateException("too many waiters: " + this);
+        }
+        ++waiters;
+    }
+
+    private void checkDeadLock() {
+        //得到执行器
+        EventExecutor executor = executor();
+        //判断是否为死锁，之前已经解释过这个问题了，其实就是等待线程和任务执行线程不能是同一个，任务执行都是在EventExecutor中的，所以其实就是判断当前线程和任务执行线程是不是同一个
+        if (executor != null && executor.inEventLoop(Thread.currentThread())) {
+            throw new BlockingOperationException(toString());
+        }
+    }
+
+    /**
+     * 在任务还未结束的时候，调用该方法的线程会被阻塞,不能抛出中断异常
+     *
+     * @return
+     */
     @Override
     public Promise<V> awaitUninterruptibly() {
-        return null;
+        //如果已经执行完成，直接返回即可
+        if (isDone()) {
+            return this;
+        }
+
+        checkDeadLock();
+
+        // 当前线程是否已经抛出中断异常，如果抛出了，那么标记一下，
+        // 因为这个方法是不支持抛出中断异常，会在内部吞掉异常的，这个标志最后用于恢复线程的中断标志，交给调用方处理
+        boolean interrupted = false;
+        synchronized (this) {
+            while (!isDone()) {
+                incWaiters();
+                try {
+                    wait();
+                } catch (InterruptedException e) {
+                    // 在这里进行主动捕获中断异常，不让其抛出
+                    interrupted = true;
+                } finally {
+                    decWaiters();
+                }
+            }
+        }
+        //如果发生异常，则给调用该方法的线程设置中断标志
+        if (interrupted) {
+            Thread.currentThread().interrupt();
+        }
+
+        return this;
     }
 
     @Override
     public boolean await(long timeout, TimeUnit unit) throws InterruptedException {
+
+
+
         return false;
     }
 
@@ -523,6 +618,37 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
         CauseHolder(Throwable cause) {
             this.cause = cause;
         }
+    }
+
+    @Override
+    public String toString() {
+        return toStringBuilder().toString();
+    }
+
+    protected StringBuilder toStringBuilder() {
+        StringBuilder buf = new StringBuilder(64)
+                .append(StringUtil.simpleClassName(this))
+                .append('@')
+                .append(Integer.toHexString(hashCode()));
+
+        Object result = this.result;
+        if (result == SUCCESS) {
+            buf.append("(success)");
+        } else if (result == UNCANCELLABLE) {
+            buf.append("(uncancellable)");
+        } else if (result instanceof CauseHolder) {
+            buf.append("(failure: ")
+                    .append(((CauseHolder) result).cause)
+                    .append(')');
+        } else if (result != null) {
+            buf.append("(success: ")
+                    .append(result)
+                    .append(')');
+        } else {
+            buf.append("(incomplete)");
+        }
+
+        return buf;
     }
 
 

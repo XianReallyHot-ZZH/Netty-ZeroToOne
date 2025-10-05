@@ -605,14 +605,38 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
         return (result instanceof CauseHolder) ? ((CauseHolder) result).cause : null;
     }
 
+    /**
+     * 同步方法，如果任务没有结束，那么会阻塞当前线程，直到任务结束或者被中断
+     * 服务器和客户端经常会调用该方法同步等待结果
+     *
+     * @return
+     * @throws InterruptedException
+     */
     @Override
     public Promise<V> sync() throws InterruptedException {
-        return null;
+        await();
+        // 如果任务异常结束，则抛出异常
+        rethrowIfFailed();
+        return this;
     }
 
     @Override
     public Promise<V> syncUninterruptibly() {
-        return null;
+        awaitUninterruptibly();
+        rethrowIfFailed();
+        return this;
+    }
+
+    /**
+     * 获取任务执行结果，如果任务异常结束，则抛出异常
+     */
+    private void rethrowIfFailed() {
+        Throwable cause = cause();
+        if (cause == null) {
+            return;
+        }
+        // 抛出异常,暂时先不从源码中引入该工具类
+        //PlatformDependent.throwException(cause);
     }
 
     @Override

@@ -34,7 +34,29 @@
 * **目标**：构建线程间协调工具体系promise及其默认实现DefaultPromise
 * **番外（顺手的事）**：手搓java源码FutureTask，感受java对线程协作工具的设计思路
 * **设计与实现**：
-* **功能与效果**：
+  * 在java原生Future的基础上进行扩展，最终抽象出netty中的Promise接口，规范定义了用于在netty中的线程协作方法
+  * 定义了FutureListener体系，并用于Promise中
+
+<div style="display: flex; justify-content: space-around; align-items: center;">
+  <div align="center">
+    <img src="./docs/img/version03/DefaultPromise.png" alt="DefaultPromise抽象层次" width="400"/>
+    <br/>
+    DefaultPromise抽象层次
+  </div>
+  <div align="center">
+    <img src="./docs/img/version03/FutureListener.png" alt="FutureListener监听器抽象层次" width="500"/>
+    <br/>
+    FutureListener监听器抽象层次
+  </div>
+</div>
+
+* **功能与效果**：promise的默认实现DefaultPromise支持如下线程协作方法
+  * 任务结果设置：setSuccess、trySuccess、setFailure、tryFailure等方法
+  * 任务查询：isSuccess、isCancellable、cause等方法
+  * 任务设置：setUncancellable等方法
+  * 任务取消：cancel等方法
+  * 同步阻塞等待（支持无限等待阻塞，也支持指定超时时间阻塞）：await、sync等方法
+  * 监听器设置：addListener、addListeners、removeListener、removeListeners等方法
 
 
 

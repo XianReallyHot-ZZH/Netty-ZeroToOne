@@ -193,8 +193,8 @@ public class NioEventLoop extends SingleThreadEventLoop {
                 byteBuffer.flip();
                 byteBuffer.get(buffer);
                 logger.info("客户端收到消息：{}", new String(buffer));
-//                // 临时测试一下，下面代码记得删掉
-//                socketChannel.write(ByteBuffer.wrap("我是客户端，我接收到了服务端连接确认的信息".getBytes()));
+                // 临时测试一下，下面代码记得删掉
+                socketChannel.write(ByteBuffer.wrap("我是客户端，我接收到了服务端连接确认的信息".getBytes()));
             }
             return;
         }

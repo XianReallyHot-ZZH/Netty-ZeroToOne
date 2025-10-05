@@ -11,7 +11,8 @@ import static com.yy.netty.util.internal.ObjectUtil.checkNotNull;
 
 /**
  * @param <V>
- * @Description:promise的默认实现类,是一个很重要的线程协作工具 <p>
+ * @Description:promise的默认实现类,是一个很重要的线程协作工具
+ * <p>
  * 在netty中，这个可以看作一个不完整的futuretask，他们二者的区别在于:
  * futuretask可以作为一个任务被线程或线程池执行，不能手动设置结果,futuretask对任务的执行过程和结果都要负责
  * 而该类则不能当做任务被线程或线程池执行，但可以手动把外部线程得到的结果赋值给result属性，该类只对结果负责，通过结果协调线程
@@ -321,9 +322,18 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
         return false;
     }
 
+    /**
+     * 获取当前任务结果,如果result不是成功状态的具体结果，那么都返回null，表示任务当前就是没有结果的
+     *
+     * @return
+     */
     @Override
     public V getNow() {
-        return null;
+        Object result = this.result;
+        if (result instanceof CauseHolder || result == SUCCESS || result == UNCANCELLABLE) {
+            return null;
+        }
+        return (V) result;
     }
 
     /**
@@ -359,14 +369,25 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
         return isCancelled0(this.result);
     }
 
+    /**
+     * 判断任务是否结束了
+     * @return
+     */
     @Override
     public boolean isDone() {
-        return false;
+        return isDone0(this.result);
     }
 
+    /**
+     * 判断任务是否成功结束,对应result为V值或者SUCCESS
+     *
+     * @return
+     */
     @Override
     public boolean isSuccess() {
-        return false;
+        Object result = this.result;
+        //result不为空，并且不等于被取消，并且不属于被包装过的异常类
+        return result != null && result != UNCANCELLABLE && !(result instanceof CauseHolder);
     }
 
     /**
@@ -379,9 +400,17 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
         return this.result == null;
     }
 
+    /**
+     * 获取任务执行时的异常
+     *
+     * @return
+     */
     @Override
     public Throwable cause() {
-        return null;
+        Object result = this.result;
+        //如果得到的结果属于包装过的异常类，说明任务执行时是有异常的，直接从包装过的类中得到异常属性即可，如果不属于包装过的异常类，则直接
+        //返回null即可
+        return (result instanceof CauseHolder) ? ((CauseHolder) result).cause : null;
     }
 
     @Override

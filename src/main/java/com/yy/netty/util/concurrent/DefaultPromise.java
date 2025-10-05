@@ -3,6 +3,7 @@ package com.yy.netty.util.concurrent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
@@ -223,6 +224,12 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
         return setSuccess0(result);
     }
 
+    /**
+     * 设置任务失败结束的结果
+     *
+     * @param cause
+     * @return
+     */
     @Override
     public Promise<V> setFailure(Throwable cause) {
         if (setFailure0(cause)) {
@@ -242,10 +249,47 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
         return setFailure0(cause);
     }
 
+    /**
+     * 设置任务为不可取消
+     *
+     * @return
+     */
     @Override
     public boolean setUncancellable() {
-        return false;
+        //用原子更新器更新result的值，这时候result还未被赋值，只有result为null时，才可以设置为不可取消，其他状态说明任务已经结束了，或者已经被设置为不可取消了
+        if (RESULT_UPDATER.compareAndSet(this, null, UNCANCELLABLE)) {
+            return true;
+        }
+        //走到这里说明设置失败了，意味着任务不可取消，这就对应两种结果，一是任务已经执行成功了，无法取消
+        //二就是任务已经被别的线程设置为不可取消了。
+        Object res = this.result;
+        // 如果已经被设置为不可取消了，那么就返回true，如果是任务已经执行结束了，那么就返回false
+        // 这里面任务结束有两种情况：1、任务成功结束；2、任务异常结束（这里面也分两种，一种就是过程异常，一种时主动取消异常）
+        return res == UNCANCELLABLE;
     }
+
+    /**
+     * 判断任务是否结束,对应两种情况：
+     * 1、成功,对应result为V值或者SUCCESS
+     * 2、失败,对应result为CauseHolder
+     *
+     * @param result
+     * @return
+     */
+    private static boolean isDone0(Object result) {
+        return result != null && result != UNCANCELLABLE;
+    }
+
+    /**
+     * 判断任务是否被取消,对应result为CauseHolder，且cause为CancellationException
+     *
+     * @param result
+     * @return
+     */
+    private static boolean isCancelled0(Object result) {
+        return result instanceof CauseHolder && ((CauseHolder) result).cause instanceof CancellationException;
+    }
+
 
     @Override
     public Promise<V> await() throws InterruptedException {
@@ -282,14 +326,37 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
         return null;
     }
 
+    /**
+     * 取消当前任务
+     *
+     * @param mayInterruptIfRunning {@code true} if the thread executing this
+     * task should be interrupted; otherwise, in-progress tasks are allowed
+     * to complete
+     * @return
+     */
     @Override
     public boolean cancel(boolean mayInterruptIfRunning) {
+        //原子更新器得到当前resuli的值，如果为null，说明任务还未执行完成，并且没有被取消
+        if (RESULT_UPDATER.compareAndSet(this, null, new CauseHolder(new CancellationException()))) {
+            // 任务取消，代表任务结束了，那么唤醒阻塞的线程
+            if (checkNotifyWaiters()) {
+                //通知所有监听器执行
+                notifyListeners();
+            }
+            return true;
+        }
+        // 走到这里说明任务已经结束，或者被取消了,或者任务为不可取消状态
         return false;
     }
 
+    /**
+     * 判断任务是否被取消了
+     *
+     * @return
+     */
     @Override
     public boolean isCancelled() {
-        return false;
+        return isCancelled0(this.result);
     }
 
     @Override
@@ -302,9 +369,14 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
         return false;
     }
 
+    /**
+     * 判断任务是否可取消,只有result为null时，任务可取消
+     *
+     * @return
+     */
     @Override
     public boolean isCancellable() {
-        return false;
+        return this.result == null;
     }
 
     @Override

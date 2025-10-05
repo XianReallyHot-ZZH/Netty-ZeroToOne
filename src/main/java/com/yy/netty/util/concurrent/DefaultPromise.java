@@ -91,7 +91,7 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
      * 给成员变量result设置值，符合如下两种情况，result可以被赋值：
      * 1、result为null，可以设置任务结果
      * 2、result为UNCANCELLABLE，任务不能被取消，可以设置任务结果
-     * result一旦被设置结果意味着任务结束了
+     * result一旦被设置结果意味着任务结束了,如果注册有监听器，则进行回调
      *
      * @param objectResult
      * @return
@@ -220,17 +220,26 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
      */
     @Override
     public boolean trySuccess(V result) {
-        return false;
+        return setSuccess0(result);
     }
 
     @Override
     public Promise<V> setFailure(Throwable cause) {
-        return null;
+        if (setFailure0(cause)) {
+            return this;
+        }
+        throw new IllegalStateException("complete already: " + this,  cause);
     }
+
+    private boolean setFailure0(Throwable cause) {
+        //设置失败结果，也就是包装过的异常信息
+        return setValue0(new CauseHolder(checkNotNull(cause, "cause")));
+    }
+
 
     @Override
     public boolean tryFailure(Throwable cause) {
-        return false;
+        return setFailure0(cause);
     }
 
     @Override
@@ -332,4 +341,18 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
     public Promise<V> removeListeners(GenericFutureListener<? extends Future<? super V>>... listeners) {
         return null;
     }
+
+    /**
+     * @Description:一个私有的静态内部类，对异常的包装
+     */
+    private static final class CauseHolder {
+
+        final Throwable cause;
+
+        CauseHolder(Throwable cause) {
+            this.cause = cause;
+        }
+    }
+
+
 }

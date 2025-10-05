@@ -425,22 +425,92 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
 
     @Override
     public Promise<V> addListener(GenericFutureListener<? extends Future<? super V>> listener) {
-        return null;
+        //检查监听器不为null
+        checkNotNull(listener, "listener");
+        //加锁
+        synchronized (this) {
+            //添加监听器
+            addListener0(listener);
+        }
+        //判断任务是否完成，实际上就是检查result是否被赋值了
+        if (isDone()) {
+            // 如果任务已经完成，那么就需要立刻回调监听器，不然监听器里的逻辑就没机会被调用了；如果任务还没完成，那么监听器的回调方法会在任务结束时被调用
+            notifyListeners();
+        }
+
+        return this;
+    }
+
+    private void addListener0(GenericFutureListener<? extends Future<? super V>> listener) {
+        if (listeners == null) {
+            //listeners为null，则说明在这之前没有添加监听器，直接把该监听器赋值给属性即可
+            listeners = listener;
+        } else if (listeners instanceof DefaultFutureListeners) {
+            //走到这里说明已经添加了多个监听器，监听器数组被包装在DefaultFutureListeners类中，所以要把监听器添加到数组中
+            ((DefaultFutureListeners) listeners).add(listener);
+        } else {
+            //这种情况适用于第二次添加的时候，把第一次添加的监听器和本次添加的监听器传入DefaultFutureListeners的构造器函数中封装为一个监听器数组
+            listeners = new DefaultFutureListeners((GenericFutureListener<? extends Future<? super V>>) listeners, listener);
+        }
     }
 
     @Override
     public Promise<V> addListeners(GenericFutureListener<? extends Future<? super V>>... listeners) {
-        return null;
+        //检查监听器不为null
+        checkNotNull(listeners, "listeners");
+        //加锁
+        synchronized (this) {
+            //遍历传入的监听器，如果有其中任何一个为null，则停止循环
+            for (GenericFutureListener<? extends Future<? super V>> listener : listeners) {
+                if (listener == null) {
+                    break;
+                }
+                //添加监听器
+                addListener0(listener);
+            }
+        }
+        if (isDone()) {
+            // 如果任务已经完成，那么就需要立刻回调监听器，不然监听器里的逻辑就没 chance 被调了；如果任务还没完成，那么监听器的回调方法会在任务结束时被调用
+            notifyListeners();
+        }
+
+        return this;
     }
 
     @Override
     public Promise<V> removeListener(GenericFutureListener<? extends Future<? super V>> listener) {
-        return null;
+        checkNotNull(listener, "listener");
+
+        synchronized (this) {
+            removeListener0(listener);
+        }
+
+        return this;
+    }
+
+    private void removeListener0(GenericFutureListener<? extends Future<? super V>> listener) {
+        if (listeners instanceof DefaultFutureListeners) {
+            //如果监听器是数组类型的，就从数组中删除
+            ((DefaultFutureListeners) listeners).remove(listener);
+        } else if (listeners == listener) {
+            //如果监听器是单个监听器，就直接赋值为null
+            listeners = null;
+        }
     }
 
     @Override
     public Promise<V> removeListeners(GenericFutureListener<? extends Future<? super V>>... listeners) {
-        return null;
+        checkNotNull(listeners, "listeners");
+        synchronized (this) {
+            for (GenericFutureListener<? extends Future<? super V>> listener : listeners) {
+                if (listener == null) {
+                    break;
+                }
+                removeListener0(listener);
+            }
+        }
+
+        return this;
     }
 
     /**

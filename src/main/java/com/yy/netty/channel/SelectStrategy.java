@@ -1,6 +1,6 @@
 package com.yy.netty.channel;
 
-import java.util.function.IntSupplier;
+import com.yy.netty.util.IntSupplier;
 
 /**
  * 选择策略

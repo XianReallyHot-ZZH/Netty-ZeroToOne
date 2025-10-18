@@ -1,8 +1,8 @@
 package com.yy.netty.channel;
 
-import java.util.function.IntSupplier;
+import com.yy.netty.util.IntSupplier;
 
-public class DefaultSelectStrategy implements SelectStrategy {
+public final class DefaultSelectStrategy implements SelectStrategy {
 
     // 单例
     public static final SelectStrategy INSTANCE = new DefaultSelectStrategy();
@@ -12,6 +12,6 @@ public class DefaultSelectStrategy implements SelectStrategy {
 
     @Override
     public int calculateStrategy(IntSupplier selectSupplier, boolean hasTasks) throws Exception {
-        return hasTasks ? selectSupplier.getAsInt() : SelectStrategy.SELECT;
+        return hasTasks ? selectSupplier.get() : SelectStrategy.SELECT;
     }
 }

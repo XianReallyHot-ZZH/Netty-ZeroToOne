@@ -3,7 +3,7 @@ package com.yy.netty.channel;
 /**
  * @Description:默认的选择策略工厂
  */
-public class DefaultSelectStrategyFactory implements SelectStrategyFactory {
+public final class DefaultSelectStrategyFactory implements SelectStrategyFactory {
 
     public static final SelectStrategyFactory INSTANCE = new DefaultSelectStrategyFactory();
 

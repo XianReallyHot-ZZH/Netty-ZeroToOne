@@ -58,5 +58,10 @@
   * 同步阻塞等待（支持无限等待阻塞，也支持指定超时时间阻塞）：await、sync等方法
   * 监听器设置：addListener、addListeners、removeListener、removeListeners等方法
 
+## version-04
+* **目标**：重构channel体系，在NioEventLoop中解耦掉依赖具体NIO的Channel类型的逻辑，结合第三版future协调器，完成对channel体系的重塑。到这版完结为止，可正常完成服务端和客户端的连接了，服务端和客户端的数据传输安排到后面再去实现。
+* **设计与实现**：完成对channel体系、channelFuture体系的抽象与重构，然后将NioEventLoop体系、Bootstrap、ServerBootstrap改造使用最新的channel体系。channel体系、channelFuture体系的抽象层次如下所示：todo
+* **功能与效果**：本迭代版本功能较第三版本没有太大区别，没有新增的功能，主要是对channel体系的重构，在整体架构上进行调整优化，为后续版本铺垫。使用案例和效果请参考ServerTest和ClientTest两个测试类。
+
 
 

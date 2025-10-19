@@ -56,9 +56,14 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
     // 每一个promise都要有执行器来执行异步任务，比如监听器的回调
     private final EventExecutor executor;
 
-
+    // 构造方法
     public DefaultPromise(EventExecutor executor) {
         this.executor = checkNotNull(executor, "executor");
+    }
+
+    // 无参构造方法
+    protected DefaultPromise() {
+        this.executor = null;
     }
 
     /**
@@ -348,7 +353,7 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
         ++waiters;
     }
 
-    private void checkDeadLock() {
+    protected void checkDeadLock() {
         //得到执行器
         EventExecutor executor = executor();
         //判断是否为死锁，之前已经解释过这个问题了，其实就是等待线程和任务执行线程不能是同一个，任务执行都是在EventExecutor中的，所以其实就是判断当前线程和任务执行线程是不是同一个

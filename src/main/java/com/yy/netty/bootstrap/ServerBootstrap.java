@@ -1,23 +1,22 @@
 package com.yy.netty.bootstrap;
 
+import com.yy.netty.channel.Channel;
+import com.yy.netty.channel.ChannelFactory;
 import com.yy.netty.channel.EventLoopGroup;
+import com.yy.netty.channel.ReflectiveChannelFactory;
 import com.yy.netty.channel.nio.NioEventLoop;
 import com.yy.netty.util.concurrent.DefaultPromise;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
-import java.nio.channels.ServerSocketChannel;
 
 /**
  * @Description:服务端Socket网络搭建引导类，引导实现对ServerSocketChannel的NIO事件处理，最终实现服务端ip：port的绑定，同时接受各个客户端的连接请求和数据的io读取
  */
-public class ServerBootstrap {
+public class ServerBootstrap<C extends Channel> {
 
     private static final Logger logger = LoggerFactory.getLogger(ServerBootstrap.class);
-
-    // 当前引导类负责引导的serverSocketChannel网络Channel对象
-    private ServerSocketChannel serverSocketChannel;
 
     // 服务端 boss事件循环组,负责处理IO accept事件（连接事件）
     private EventLoopGroup bossGroup;
@@ -25,6 +24,8 @@ public class ServerBootstrap {
     // 服务端 work事件循环组, 负责处理IO read/write事件（读写事件）
     private EventLoopGroup workGroup;
 
+    // channel工厂，用于后续生产指定类型的channel实例
+    private volatile ChannelFactory<? extends Channel> channelFactory;
 
     public ServerBootstrap() {
 
@@ -43,18 +44,20 @@ public class ServerBootstrap {
         return this;
     }
 
-
     /**
-     * 设置serverSocketChannel
+     * 根据入参的channel类创建channel的工厂，用于后续生产指定类型的channel实例
      *
-     * @param serverSocketChannel
+     * @param channelClazz
      * @return
      */
-    public ServerBootstrap serverSocketChannel(ServerSocketChannel serverSocketChannel) {
-        this.serverSocketChannel = serverSocketChannel;
+    public ServerBootstrap channel(Class<? extends C> channelClazz) {
+        this.channelFactory = new ReflectiveChannelFactory<C>(channelClazz);
         return this;
     }
 
+    public DefaultPromise<Object> bind(int inetPort) {
+        return bind(new InetSocketAddress(inetPort));
+    }
 
     /**
      * 为ServerSocketChannel绑定服务端口

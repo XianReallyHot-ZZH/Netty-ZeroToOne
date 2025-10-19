@@ -1,8 +1,6 @@
 package com.yy.netty.bootstrap;
 
 import com.yy.netty.channel.*;
-import com.yy.netty.channel.nio.NioEventLoop;
-import com.yy.netty.util.concurrent.DefaultPromise;
 import com.yy.netty.util.internal.ObjectUtil;
 import com.yy.netty.util.internal.SocketUtils;
 import org.slf4j.Logger;
@@ -99,7 +97,21 @@ public class ServerBootstrap<C extends Channel> {
             // 为了增加体现注册是否成功的信息，使用在该类定义的PendingRegistrationPromise，在DefaultChannelPromise的基础上添加注册是否成功的信息记录
             PendingRegistrationPromise promise = new PendingRegistrationPromise(channel);
             // 在注册future上添加监听器
-//            regFuture.addListener(new ChannelFutureListener() {})
+            regFuture.addListener(new ChannelFutureListener() {
+                @Override
+                public void operationComplete(ChannelFuture future) {
+                    Throwable cause = future.cause();
+                    if (cause != null) {
+                        // 说明channel注册失败了
+                        promise.setFailure(cause);
+                    } else {
+                        // 说明channel注册成功，那么开始绑定本地的服务端口了
+                        promise.registered();
+                        doBind0(regFuture, channel, localAddress, promise);
+                    }
+                }
+            });
+            return promise;
         }
     }
 
@@ -111,7 +123,7 @@ public class ServerBootstrap<C extends Channel> {
      * @param localAddress
      * @param promise
      */
-    private void doBind0(final ChannelFuture regFuture,final Channel channel,final SocketAddress localAddress,final DefaultChannelPromise promise) {
+    private void doBind0(final ChannelFuture regFuture, final Channel channel, final SocketAddress localAddress, final DefaultChannelPromise promise) {
         // 异步绑定
         channel.eventLoop().execute(new Runnable() {
             @Override
@@ -135,32 +147,14 @@ public class ServerBootstrap<C extends Channel> {
      * @return
      */
     private ChannelFuture initAndRegister() {
+        Channel channel = null;
+        //在这里初始化服务端channel，反射创建对象调用的无参构造器
+        channel = channelFactory.newChannel();
+        //这里是异步注册的，一般来说，bossGroup设置的都是一个线程。
+        ChannelFuture regFuture = bossGroup.next().register(channel);
+        return regFuture;
     }
 
-    /**
-     * @param inetSocketAddress
-     * @param nioEventLoop
-     * @Description:这里把绑定端口号封装成一个runnable，提交到单线程执行器的任务队列，绑定端口号仍然由单线程执行器完成,保证在单线程中注册accept事件要早于绑定端口行为
-     */
-    private void doBind0(InetSocketAddress inetSocketAddress, NioEventLoop nioEventLoop, DefaultPromise<Object> promise) {
-        nioEventLoop.execute(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    serverSocketChannel.bind(inetSocketAddress);
-                    logger.info("服务端channel绑定至ip:port={}， 服务端启动成功！boss线程绑定至：{}",
-                            inetSocketAddress.getAddress() + ":" + inetSocketAddress.getPort(), Thread.currentThread().getName());
-
-                    Thread.sleep(5000); // 这一行为了测试，记得注释掉
-                    // bind成功，给promise设置成功结果，唤醒等待的线程
-                    promise.setSuccess(null);
-                } catch (Exception e) {
-                    logger.error(e.getMessage());
-                }
-            }
-        });
-
-    }
 
     /**
      * 为了增加体现注册是否成功的信息，在DefaultChannelPromise的基础上添加注册是否成功的信息记录

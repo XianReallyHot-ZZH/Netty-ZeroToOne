@@ -2,18 +2,18 @@ package com.yy.netty.test;
 
 import com.yy.netty.bootstrap.ServerBootstrap;
 import com.yy.netty.channel.Channel;
+import com.yy.netty.channel.ChannelFuture;
 import com.yy.netty.channel.nio.NioEventLoopGroup;
 import com.yy.netty.channel.socket.NioServerSocketChannel;
 import com.yy.netty.util.concurrent.Future;
 import com.yy.netty.util.concurrent.GenericFutureListener;
-import com.yy.netty.util.concurrent.Promise;
 
 import java.io.IOException;
 
 public class ServerTest {
 
     public static void main(String[] args) throws IOException, InterruptedException {
-        // 创建服务端启动类
+        // 创建服务端启动类,TODO这里的类型待改成NioServerSocketChannel
         ServerBootstrap<Channel> serverBootstrap = new ServerBootstrap<>();
         // 创建两个Nio类型的事件循环EventLoopGroup
         // boss执行器组，负责处理accept事件
@@ -22,7 +22,7 @@ public class ServerTest {
         NioEventLoopGroup workerGroup = new NioEventLoopGroup(2);
 
 
-        Promise<Object> promise = serverBootstrap
+        ChannelFuture future = serverBootstrap
                 .group(bossGroup, workerGroup)
                 .channel(NioServerSocketChannel.class)
                 .bind(8080)
@@ -34,7 +34,7 @@ public class ServerTest {
                     }
                 }).sync();
 
-        System.out.println("服务端启动成功！promise result: " + promise.getNow());
+        System.out.println("服务端启动成功！channelFuture result: " + future.getNow());
 
     }
 

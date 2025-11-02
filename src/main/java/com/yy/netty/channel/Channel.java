@@ -8,14 +8,14 @@ import java.net.SocketAddress;
  * 1、增强原生NIO channel的功能
  * 2、进行各层抽象与实现后，达到复用部分代码实现的目的，同时留出给上层自定义的方法
  * 3、适配netty的总体规划
- *
+ * <p>
  * 知识补充：
  * 客户端侧socketChannel历经的IO流程（初始化流程）： reg OP_CONNECT -> doConnect -> response OP_CONNECT and reg OP_READ -> response read；
  * 总结：客户端的socketChannel要先后注册两种事件，OP_CONNECT，OP_READ
  * 服务端serverSocketChannel历经的IO流程（初始化流程）: reg OP_ACCEPT -> doBind -> response OP_ACCEPT -> accept socketChannel and socketChannel reg OP_READ；
  * 总结：服务端涉及两种socketChannel，分别是服务端serverSocketChannel和客户端socketChannel，但是每种channel只需要注册和响应处理一种事件，
  * 具体为serverSocketChannel只需要注册和响应OP_ACCEPT，客户端socketChannel直接注册和响应OP_READ即可
- *
+ * </p>
  */
 public interface Channel {
 

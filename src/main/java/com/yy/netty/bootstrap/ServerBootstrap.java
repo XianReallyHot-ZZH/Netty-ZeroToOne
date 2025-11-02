@@ -87,7 +87,7 @@ public class ServerBootstrap<C extends Channel> {
         Channel channel = regFuture.channel();
         // 3、判断channel是否注册完成
         if (regFuture.isDone()) {
-            // 服务端channel成功注册感兴趣的事件了，那么在本线程就可以继续为其绑定本地的服务端口了
+            // 服务端channel成功注册到EventLoop了，那么在本线程就可以继续为其绑定本地的服务端口了
             // 绑定的行为是异步的，所以创建一个ChannelFuture，用于协调调用方的线程
             DefaultChannelPromise promise = new DefaultChannelPromise(channel);
             // 执行异步绑定，只有异步绑定成功后，本服务端channel才会真正完成accept事件注册，此时服务channel才真正能接受客户端的连接了
@@ -95,7 +95,7 @@ public class ServerBootstrap<C extends Channel> {
             return promise;
         } else {
             // 服务端channel还没有成功注册感兴趣的事件，那么绑定本地的服务端口的逻辑就需要挂载到regFuture的监听器上面，channel注册结束了，回调绑定端口的逻辑
-            // 为了增加体现注册是否成功的信息，使用在该类定义的PendingRegistrationPromise，在DefaultChannelPromise的基础上添加注册是否成功的信息记录
+            // 为了协助判断服务端channel是否注册成功，使用在该类定义的PendingRegistrationPromise，在DefaultChannelPromise的基础上添加注册是否成功的信息记录
             PendingRegistrationPromise promise = new PendingRegistrationPromise(channel);
             // 在注册future上添加监听器
             regFuture.addListener(new ChannelFutureListener() {

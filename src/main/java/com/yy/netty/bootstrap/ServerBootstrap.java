@@ -80,7 +80,8 @@ public class ServerBootstrap<C extends Channel> {
     }
 
     private ChannelFuture doBind(SocketAddress localAddress) {
-        // 1、完成对指定channel的创建，这里其实就是服务端的channel了，然后将其注册到boss组中的单线程执行器的selector上，并指定感兴趣的事件，其实就是accept事件了
+        // 1、完成对指定channel的创建，这里其实就是服务端的channel了，然后将其注册到boss组中的单线程执行器的selector上（不带任务感兴趣事件的注册行为，其实就是为了将channel和一个EventLoop进行绑定），
+        // 这里还没法成功注册accep事件，因为还没进行端口绑定，在下面绑定端口的逻辑里会真正为channel注册accept事件
         final ChannelFuture regFuture = initAndRegister();
         // 2、得到创建的channel
         Channel channel = regFuture.channel();
@@ -89,7 +90,7 @@ public class ServerBootstrap<C extends Channel> {
             // 服务端channel成功注册感兴趣的事件了，那么在本线程就可以继续为其绑定本地的服务端口了
             // 绑定的行为是异步的，所以创建一个ChannelFuture，用于协调调用方的线程
             DefaultChannelPromise promise = new DefaultChannelPromise(channel);
-            // 执行异步绑定
+            // 执行异步绑定，只有异步绑定成功后，本服务端channel才会真正完成accept事件注册，此时服务channel才真正能接受客户端的连接了
             doBind0(regFuture, channel, localAddress, promise);
             return promise;
         } else {

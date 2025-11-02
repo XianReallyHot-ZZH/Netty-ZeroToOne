@@ -75,4 +75,28 @@ public abstract class MultithreadEventLoopGroup extends MultithreadEventExecutor
      */
     @Override
     protected abstract EventLoop newChild(Executor executor, Object[] args) throws Exception;
+
+    /**
+     * 将channel注册到本EventLoopGroup中
+     *
+     * @param channel
+     * @return
+     */
+    @Override
+    public ChannelFuture register(Channel channel) {
+        // 选一个eventLoop进行绑定，其实目的就是将一个channel绑定到一个具体的EventLoop上（EventLoop里的Selector）
+        return next().register(channel);
+    }
+
+    /**
+     * 其实这个方法是上面register(Channel channel)方法的一个封装，ChannelPromise里的channel成员就是上面方法的入参，要干的事情都是一样的
+     *
+     * @param promise
+     * @return
+     */
+    @Override
+    public ChannelFuture register(ChannelPromise promise) {
+        return next().register(promise);
+    }
+
 }

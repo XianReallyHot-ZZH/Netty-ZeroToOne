@@ -27,6 +27,9 @@ public interface Channel {
     // 只有服务端的socketChannel才会有parent（ServerSocketChannel）
     Channel parent();
 
+    // 获取channel的配置信息
+    ChannelConfig config();
+
     /**
      * 判断nio的channel是否已经打开
      *
@@ -70,6 +73,13 @@ public interface Channel {
      * @return
      */
     ChannelFuture closeFuture();
+
+    /**
+     * 关闭本channel，该方法并不在此接口，而是在ChannelOutboundInvoker接口，现在先放在这里
+     *
+     * @return
+     */
+    ChannelFuture close();
 
     /**
      * 绑定本channel到本地服务端口(只有服务端的channel才会实现该方法)，该方法并不在此接口，而是在ChannelOutboundInvoker接口，现在先放在这里

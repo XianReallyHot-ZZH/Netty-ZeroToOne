@@ -1,8 +1,13 @@
 package com.yy.netty.util.internal;
 
+import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.nio.channels.ServerSocketChannel;
+import java.nio.channels.SocketChannel;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
+import java.security.PrivilegedActionException;
+import java.security.PrivilegedExceptionAction;
 
 public class SocketUtils {
 
@@ -16,6 +21,19 @@ public class SocketUtils {
                 return new InetSocketAddress(hostname, port);
             }
         });
+    }
+
+    public static SocketChannel accept(final ServerSocketChannel serverSocketChannel) throws IOException {
+        try {
+            return AccessController.doPrivileged(new PrivilegedExceptionAction<SocketChannel>() {
+                @Override
+                public SocketChannel run() throws IOException {
+                    return serverSocketChannel.accept();
+                }
+            });
+        } catch (PrivilegedActionException e) {
+            throw (IOException) e.getCause();
+        }
     }
 
 }

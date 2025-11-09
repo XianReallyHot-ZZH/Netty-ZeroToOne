@@ -45,7 +45,8 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
     protected abstract int doReadMessages(List<Object> buf) throws Exception;
 
     /**
-     * 服务端channel“读”事件的处理逻辑：接受客户端连接，生成客户端channel，把将其注册到工作线程上
+     * 服务端channel“读”事件的处理逻辑：
+     * 其实就是从ServerSocketChannel上接受客户端连接，生成客户端channel，把将其注册到工作线程上
      */
     @Override
     protected void read() {

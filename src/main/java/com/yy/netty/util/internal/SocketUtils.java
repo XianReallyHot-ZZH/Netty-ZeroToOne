@@ -2,6 +2,7 @@ package com.yy.netty.util.internal;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.security.AccessController;
@@ -23,6 +24,35 @@ public class SocketUtils {
         });
     }
 
+    /**
+     * 客户端socketChannel连接至远程服务器
+     *
+     * @param socketChannel
+     * @param remoteAddress
+     * @return
+     * @throws IOException
+     */
+    public static boolean connect(final SocketChannel socketChannel, final SocketAddress remoteAddress)
+            throws IOException {
+        try {
+            return AccessController.doPrivileged(new PrivilegedExceptionAction<Boolean>() {
+                @Override
+                public Boolean run() throws IOException {
+                    return socketChannel.connect(remoteAddress);
+                }
+            });
+        } catch (PrivilegedActionException e) {
+            throw (IOException) e.getCause();
+        }
+    }
+
+    /**
+     * 服务端socketChannel接受客户端连接,生成客户端channel，并返回
+     *
+     * @param serverSocketChannel
+     * @return
+     * @throws IOException
+     */
     public static SocketChannel accept(final ServerSocketChannel serverSocketChannel) throws IOException {
         try {
             return AccessController.doPrivileged(new PrivilegedExceptionAction<SocketChannel>() {
@@ -35,5 +65,27 @@ public class SocketUtils {
             throw (IOException) e.getCause();
         }
     }
+
+    /**
+     * 客户端socketChannel绑定到本地端口
+     *
+     * @param socketChannel
+     * @param address
+     * @throws IOException
+     */
+    public static void bind(final SocketChannel socketChannel, final SocketAddress address) throws IOException {
+        try {
+            AccessController.doPrivileged(new PrivilegedExceptionAction<Void>() {
+                @Override
+                public Void run() throws IOException {
+                    socketChannel.bind(address);
+                    return null;
+                }
+            });
+        } catch (PrivilegedActionException e) {
+            throw (IOException) e.getCause();
+        }
+    }
+
 
 }

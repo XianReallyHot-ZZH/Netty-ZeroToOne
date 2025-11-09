@@ -19,7 +19,7 @@
     NioEventLoop抽象层次
   </div>
   <div align="center">
-    <img src="./docs/img/version02/NioEventLoopGroup.png" alt="NioEventLoopGroup抽象层次" width="500"/>
+    <img src="./docs/img/version02/NioEventLoopGroup.png" alt="NioEventLoopGroup抽象层次" width="400"/>
     <br/>
     NioEventLoopGroup抽象层次
   </div>
@@ -44,7 +44,7 @@
     DefaultPromise抽象层次
   </div>
   <div align="center">
-    <img src="./docs/img/version03/FutureListener.png" alt="FutureListener监听器抽象层次" width="500"/>
+    <img src="./docs/img/version03/FutureListener.png" alt="FutureListener监听器抽象层次" width="400"/>
     <br/>
     FutureListener监听器抽象层次
   </div>
@@ -59,8 +59,30 @@
   * 监听器设置：addListener、addListeners、removeListener、removeListeners等方法
 
 ## version-04
-* **目标**：重构channel体系，在NioEventLoop中解耦掉依赖具体NIO的Channel类型的逻辑，结合第三版future协调器，完成对channel体系的重塑。到这版完结为止，可正常完成服务端和客户端的连接了，服务端和客户端的数据传输安排到后面再去实现。
-* **设计与实现**：完成对channel体系、channelFuture体系的抽象与重构，然后将NioEventLoop体系、Bootstrap、ServerBootstrap改造使用最新的channel体系。channel体系、channelFuture体系的抽象层次如下所示：todo
+* **目标**：重构channel体系，NioEventLoop借助Channel体系，将IO事件委托给相应具体的channel来处理，解耦掉依赖具体NIO的Channel类型的逻辑，实现解耦。
+结合第三版future协调器，扩展出channel的future体系。到这版完结为止，可正常完成服务端和客户端的连接了，服务端和客户端的数据传输安排到后面再去实现。
+* **设计与实现**：完成对channel体系、channelFuture体系的抽象与重构，然后将NioEventLoop体系、Bootstrap、ServerBootstrap改造使用最新的channel体系。
+channel体系有两个顶层实现类，分别对应服务端的NioServerSocketChannel和客户端的NioSocketChannel。channelFuture的默认实现类为DefaultChannelPromise。
+NioServerSocketChannel、NioSocketChannel、DefaultChannelFuture三个类各自的抽象设计层次如下：
+
+<div style="display: flex; justify-content: space-around; align-items: center;">
+  <div align="center">
+    <img src="./docs/img/version04/NioServerSocketChannel.png" alt="NioServerSocketChannel抽象层次" width="400"/>
+    <br/>
+    NioServerSocketChannel抽象层次
+  </div>
+  <div align="center">
+    <img src="./docs/img/version04/NioSocketChannel.png" alt="NioSocketChannel抽象层次" width="400"/>
+    <br/>
+    NioSocketChannel抽象层次
+  </div>
+  <div align="center">
+    <img src="./docs/img/version04/DefaultChannelPromise.png" alt="DefaultChannelPromise抽象层次" width="400"/>
+    <br/>
+    DefaultChannelPromise抽象层次
+  </div>
+</div>
+
 * **功能与效果**：本迭代版本功能较第三版本没有太大区别，没有新增的功能，主要是对channel体系的重构，在整体架构上进行调整优化，为后续版本铺垫。使用案例和效果请参考ServerTest和ClientTest两个测试类。
 
 

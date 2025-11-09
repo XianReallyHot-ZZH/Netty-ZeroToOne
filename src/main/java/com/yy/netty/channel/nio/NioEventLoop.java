@@ -1,16 +1,16 @@
 package com.yy.netty.channel.nio;
 
-import com.yy.netty.channel.*;
+import com.yy.netty.channel.EventLoopTaskQueueFactory;
+import com.yy.netty.channel.SelectStrategy;
+import com.yy.netty.channel.SingleThreadEventLoop;
 import com.yy.netty.util.concurrent.RejectedExecutionHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
+import java.nio.channels.CancelledKeyException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
-import java.nio.channels.ServerSocketChannel;
-import java.nio.channels.SocketChannel;
 import java.nio.channels.spi.SelectorProvider;
 import java.util.Iterator;
 import java.util.Queue;
@@ -170,27 +170,30 @@ public class NioEventLoop extends SingleThreadEventLoop {
      * @param ch
      */
     private void processSelectedKey(SelectionKey key, AbstractNioChannel ch) throws Exception {
-        //得到key感兴趣的事件
-        int ops = key.interestOps();
-        //如果是连接事件,该事件只会出现在客户端channel中
-        if (ops == SelectionKey.OP_CONNECT) {
-            //位运算，实现移除连接事件，否则会一直通知，这里实际上是做了个减法
-            ops &= ~SelectionKey.OP_CONNECT;
-            //刷新感兴趣的事件，其实还是在做清理
-            key.interestOps(ops);
-            //走到这里说明客户端channel连接成功了，那么就可以真正为该channel注册读事件，开始进入循环处理客户端IO读事件了
-            ch.doBeginRead();
-        }
+        try {
+            //得到key感兴趣的事件
+            int ops = key.interestOps();
+            //如果是连接事件,该事件只会出现在客户端channel中
+            if (ops == SelectionKey.OP_CONNECT) {
+                //位运算，实现移除连接事件，否则会一直通知，这里实际上是做了个减法
+                ops &= ~SelectionKey.OP_CONNECT;
+                //刷新感兴趣的事件，其实还是在做清理
+                key.interestOps(ops);
+                //走到这里说明客户端channel连接成功了，那么就可以真正为该channel注册读事件，开始进入循环处理客户端IO读事件了
+                ch.doBeginRead();
+            }
 
-        // 下面两个逻辑，其实就是把具体的read实现委托给了具体的channel，这个具体的channel其实就是key上作为附件绑定的那个具体的netty channel了
-        if (ops ==  SelectionKey.OP_READ) {
-            // 其实只有客户端channel才会触发OP_READ事件，很自然的，这里ch的实例肯定就是NioSocketChannel
-            ch.read();
-        }
-        if (ops == SelectionKey.OP_ACCEPT) {
-            // 服务端channel才会触发OP_ACCEPT事件，很自然的，这里ch的实例肯定就是NioServerSocketChannel
-            ch.read();
+            // 下面两个逻辑，其实就是把具体的read实现委托给了具体的channel，这个具体的channel其实就是key上作为附件绑定的那个具体的netty channel了
+            if (ops == SelectionKey.OP_READ) {
+                // 其实只有客户端channel才会触发OP_READ事件，很自然的，这里ch的实例肯定就是NioSocketChannel
+                ch.read();
+            }
+            if (ops == SelectionKey.OP_ACCEPT) {
+                // 服务端channel才会触发OP_ACCEPT事件，很自然的，这里ch的实例肯定就是NioServerSocketChannel
+                ch.read();
+            }
+        } catch (CancelledKeyException ignored) {
+            throw new RuntimeException(ignored.getMessage());
         }
     }
-
 }

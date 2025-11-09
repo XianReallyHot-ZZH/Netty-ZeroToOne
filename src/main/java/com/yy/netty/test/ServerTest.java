@@ -13,7 +13,7 @@ import java.io.IOException;
 public class ServerTest {
 
     public static void main(String[] args) throws IOException, InterruptedException {
-        // 创建服务端启动类,TODO这里的类型待改成NioServerSocketChannel
+        // 创建服务端启动类
         ServerBootstrap<Channel> serverBootstrap = new ServerBootstrap<>();
         // 创建两个Nio类型的事件循环EventLoopGroup
         // boss执行器组，负责处理accept事件

@@ -51,14 +51,19 @@ public class DefaultChannelPromise extends DefaultPromise<Void> implements Chann
 
     @Override
     protected EventExecutor executor() {
-        // TODO:待改造，结合channel的功能综合改造
-        return super.executor();
+        EventExecutor e = super.executor();
+        if (e == null) {
+            return channel().eventLoop();
+        } else {
+            return e;
+        }
     }
 
     @Override
     protected void checkDeadLock() {
-        // TODO:待改造，结合channel的状态进行综合改造
-        super.checkDeadLock();
+        if (channel().isRegistered()) {
+            super.checkDeadLock();
+        }
     }
 
     @Override

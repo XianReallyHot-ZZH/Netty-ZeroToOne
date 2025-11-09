@@ -1,6 +1,7 @@
 package com.yy.netty.bootstrap;
 
 import com.yy.netty.channel.*;
+import com.yy.netty.util.concurrent.EventExecutor;
 import com.yy.netty.util.internal.ObjectUtil;
 import com.yy.netty.util.internal.SocketUtils;
 import org.slf4j.Logger;
@@ -171,6 +172,11 @@ public class ServerBootstrap<C extends Channel> {
         //该方法是该静态类独有的,用于改变成员变量registered的值，该方法被调用的时候，registered赋值为true
         void registered() {
             registered = true;
+        }
+
+        @Override
+        protected EventExecutor executor() {
+            return super.executor();
         }
 
     }

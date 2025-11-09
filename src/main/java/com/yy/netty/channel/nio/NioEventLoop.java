@@ -1,9 +1,6 @@
 package com.yy.netty.channel.nio;
 
-import com.yy.netty.channel.EventLoopGroup;
-import com.yy.netty.channel.EventLoopTaskQueueFactory;
-import com.yy.netty.channel.SelectStrategy;
-import com.yy.netty.channel.SingleThreadEventLoop;
+import com.yy.netty.channel.*;
 import com.yy.netty.util.concurrent.RejectedExecutionHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,7 +19,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.LinkedBlockingQueue;
 
 /**
- * @Description:NIO类型事件循环器（执行器），nio中selector各种事件，都由该类处理，对ServerSocketChannel和SocketChannel现在还是耦合在一起实现的，这块后续再改造
+ * @Description:NIO类型事件循环器（执行器），nio中selector各种事件，包括netty的处理事件，都由该类处理
  */
 public class NioEventLoop extends SingleThreadEventLoop {
 
@@ -30,25 +27,18 @@ public class NioEventLoop extends SingleThreadEventLoop {
 
     private static int index = 0;
 
-    // ServerSocketChannel和SocketChannel不会同时出现，这里后续优化
-    private ServerSocketChannel serverSocketChannel;
-
-    private SocketChannel socketChannel;
+    // id
+    private final int id;
 
     // 多路复用选择器，一个NIO事件循环器对应一个多路复用选择器
-    private Selector selector;
+    private final Selector selector;
 
     // 多路复用选择器的提供者
-    private SelectorProvider selectorProvider;
-
-    // 对应服务端的IO读eventLoop的group，这个这样写不好，但是先就这样处理了
-    private EventLoopGroup workGroup;
+    private final SelectorProvider selectorProvider;
 
     // 选择策略
     private SelectStrategy selectStrategy;
 
-    // id
-    private int id;
 
     /**
      * 构造方法
@@ -73,9 +63,8 @@ public class NioEventLoop extends SingleThreadEventLoop {
         this.selectorProvider = selectorProvider;
         this.selector = openSelector();
         this.selectStrategy = strategy;
-        logger.info("我是第{}个nioEventLoop", ++index);
-        id = index;
-        logger.info("work" + id);
+        id = ++index;
+        logger.info("我是第{}个nioEventLoop, id:{}", index, id);
     }
 
     private static Queue<Runnable> newTaskQueue(EventLoopTaskQueueFactory queueFactory) {
@@ -84,25 +73,6 @@ public class NioEventLoop extends SingleThreadEventLoop {
         }
         return queueFactory.newTaskQueue(DEFAULT_MAX_PENDING_TASKS);
     }
-
-    public void setServerSocketChannel(ServerSocketChannel serverSocketChannel) {
-        if (socketChannel != null) {
-            throw new IllegalStateException("socketChannel is already set, serverSocketChannel can not be set");
-        }
-        this.serverSocketChannel = serverSocketChannel;
-    }
-
-    public void setSocketChannel(SocketChannel socketChannel) {
-        if (serverSocketChannel != null) {
-            throw new IllegalStateException("serverSocketChannel is already set, socketChannel can not be set");
-        }
-        this.socketChannel = socketChannel;
-    }
-
-    public void setWorkGroup(EventLoopGroup workGroup) {
-        this.workGroup = workGroup;
-    }
-
 
     // 得到该EventLoop的用于轮询的选择器
     private Selector openSelector() {
@@ -116,6 +86,14 @@ public class NioEventLoop extends SingleThreadEventLoop {
         }
     }
 
+    /**
+     * 获取该EventLoop唯一绑定的Selector
+     *
+     * @return
+     */
+    public Selector unwrappedSelector() {
+        return selector;
+    }
 
     /**
      * <核心方法>
@@ -140,6 +118,20 @@ public class NioEventLoop extends SingleThreadEventLoop {
         }
     }
 
+    private void select() throws IOException {
+        Selector selector = this.selector;
+        //这里是一个死循环, 直到有IO事件到来或者任务队列中有任务, 不然就需要用循环来实现阻塞的效果
+        for (; ; ) {
+            //如果没有就绪事件，就在这里阻塞3秒
+            int selectedKeyNum = selector.select(3000);
+            //如果有事件或者单线程执行器中有任务待执行，就退出循环；否则就继续循环
+            if (selectedKeyNum != 0 || hasTasks()) {
+                break;
+            }
+        }
+    }
+
+
     private void processSelectedKeys() throws Exception {
         processSelectedKeysPlain(selector.selectedKeys());
     }
@@ -157,98 +149,48 @@ public class NioEventLoop extends SingleThreadEventLoop {
         Iterator<SelectionKey> iterator = selectedKeys.iterator();
         do {
             SelectionKey key = iterator.next();
+            //还记得channel在注册时的第三个参数this吗？这里通过attachment方法就可以得到nio类的channel
+            final Object nettyChannel = key.attachment();
             iterator.remove();
             //处理就绪事件
-            processSelectedKey(key);
+            if (nettyChannel instanceof AbstractNioChannel) {
+                // 其实这里key和channel是一对，channel中会持有该key
+                processSelectedKey(key, (AbstractNioChannel) nettyChannel);
+            }
         } while (iterator.hasNext());
     }
 
     /**
      * <比较关键的方法>
-     * 根据SelectionKey处理单条IO事件
-     * 由于这里我们并不知道当前的这个NioEventLoop是服务端还是客户端，所以这里代码实现上会比较耦合，需要判断根据serverSocketChannel和socketChannel的值来判断，两者只会存在其一
-     * 这里的代码是比较丑陋了，后续重构，会仿写netty，把这部分优化掉
+     * 根据SelectionKey处理单条IO事件,这里借助Channel体系，将IO事件委托给相应的channel来处理，实现了解耦
+     * 其实这里入参key和channel是一对，channel中会持有该key，IO的具体处理可以委托给相应的channel来完成
      * </比较关键的方法>
      *
      * @param key
+     * @param ch
      */
-    private void processSelectedKey(SelectionKey key) throws IOException {
-        //说明传进来的是客户端channel，要处理客户端的事件
-        if (socketChannel != null) {
-            // 如果是连接事件
-            if (key.isConnectable()) {
-                logger.info("客户端处理IO连接事件");
-                //channel已经连接成功
-                if (socketChannel.finishConnect()) {
-                    //注册读事件
-                    socketChannel.register(selector, SelectionKey.OP_READ);
-                }
-            }
-            //如果是读事件
-            if (key.isReadable()) {
-                logger.info("客户端处理IO读事件");
-                ByteBuffer byteBuffer = ByteBuffer.allocate(1024);
-                int len = socketChannel.read(byteBuffer);
-                byte[] buffer = new byte[len];
-                byteBuffer.flip();
-                byteBuffer.get(buffer);
-                logger.info("客户端收到消息：{}", new String(buffer));
-                // 临时测试一下，下面代码记得删掉
-                socketChannel.write(ByteBuffer.wrap("我是客户端，我接收到了服务端连接确认的信息".getBytes()));
-            }
-            return;
+    private void processSelectedKey(SelectionKey key, AbstractNioChannel ch) throws Exception {
+        //得到key感兴趣的事件
+        int ops = key.interestOps();
+        //如果是连接事件,该事件只会出现在客户端channel中
+        if (ops == SelectionKey.OP_CONNECT) {
+            //位运算，实现移除连接事件，否则会一直通知，这里实际上是做了个减法
+            ops &= ~SelectionKey.OP_CONNECT;
+            //刷新感兴趣的事件，其实还是在做清理
+            key.interestOps(ops);
+            //走到这里说明客户端channel连接成功了，那么就可以真正为该channel注册读事件，开始进入循环处理客户端IO读事件了
+            ch.doBeginRead();
         }
-        //运行到这里说明是服务端的channel
-        if (serverSocketChannel != null) {
-            //连接事件
-            if (key.isAcceptable()) {
-                logger.info("服务端处理IO连接事件");
-                SocketChannel socketChannel = serverSocketChannel.accept();
-                socketChannel.configureBlocking(false);
-                // 交给workerGroup处理，服务端的主eventLoopGroup只处理连接事件，workerGroup处理读事件
-                NioEventLoop workerNioEventLoop = (NioEventLoop) workGroup.next();
-                workerNioEventLoop.setServerSocketChannel(serverSocketChannel);
-                logger.info("+++++++++++++++++++++++++++++++++++++++++++服务端的IO读事件要注册到第{}work(nioEventLoop)上！", workerNioEventLoop.id);
-                // 注册读事件到自己
-                workerNioEventLoop.registerRead(socketChannel, workerNioEventLoop);
-                logger.info("服务器处理客户端连接事件成功:{}", socketChannel.toString());
-                socketChannel.write(ByteBuffer.wrap("我还不是netty，但我知道你上线了".getBytes()));
-                logger.info("服务器接收到客户端连接后，向客户端发送消息成功！");
-            }
-            //读事件
-            if (key.isReadable()) {
-                logger.info("服务端处理IO读事件");
-                SocketChannel channel = (SocketChannel) key.channel();
-                ByteBuffer byteBuffer = ByteBuffer.allocate(1024);
-                int len = channel.read(byteBuffer);
-                if (len == -1) {
-                    logger.info("客户端通道要关闭！");
-                    channel.close();
-                    return;
-                }
-                byte[] buffer = new byte[len];
-                byteBuffer.flip();
-                byteBuffer.get(buffer);
-                logger.info("服务端收到客户端发送的数据:{}", new String(buffer));
-            }
+
+        // 下面两个逻辑，其实就是把具体的read实现委托给了具体的channel，这个具体的channel其实就是key上作为附件绑定的那个具体的netty channel了
+        if (ops ==  SelectionKey.OP_READ) {
+            // 其实只有客户端channel才会触发OP_READ事件，很自然的，这里ch的实例肯定就是NioSocketChannel
+            ch.read();
+        }
+        if (ops == SelectionKey.OP_ACCEPT) {
+            // 服务端channel才会触发OP_ACCEPT事件，很自然的，这里ch的实例肯定就是NioServerSocketChannel
+            ch.read();
         }
     }
 
-    private void select() throws IOException {
-        Selector selector = this.selector;
-        //这里是一个死循环, 直到有IO事件到来或者任务队列中有任务, 不然就需要用循环来实现阻塞的效果
-        for (; ; ) {
-            //如果没有就绪事件，就在这里阻塞3秒
-            int selectedKeyNum = selector.select(3000);
-            //如果有事件或者单线程执行器中有任务待执行，就退出循环
-            if (selectedKeyNum != 0 || hasTasks()) {
-                break;
-            }
-        }
-    }
-
-
-    public Selector unwrappedSelector() {
-        return selector;
-    }
 }

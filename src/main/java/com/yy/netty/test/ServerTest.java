@@ -34,7 +34,7 @@ public class ServerTest {
                     }
                 }).sync();
 
-        System.out.println("服务端启动成功！channelFuture result: " + future.getNow());
+        System.out.println("服务端启动成功！channelFuture result: " + future.getNow() + ", channel: " + future.channel());
 
     }
 

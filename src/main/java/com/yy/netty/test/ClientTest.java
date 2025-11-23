@@ -21,7 +21,7 @@ public class ClientTest {
                 // 连接至某个服务器，完成启动
                 .connect("127.0.0.1", 8080);
         future.sync();
-        System.out.println("客户端启动成功!channelFuture result: " + future.getNow());
+        System.out.println("客户端启动成功!channelFuture result: " + future.getNow() + " channel: " + future.channel());
 
     }
 

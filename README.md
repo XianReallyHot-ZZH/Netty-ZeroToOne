@@ -87,10 +87,26 @@ NioServerSocketChannel、NioSocketChannel、DefaultChannelFuture三个类各自�
 
 ## version-05
 * **目标**：在channel体系中引入Unsafe设计模式，搞清楚Netty中Unsafe接口和其实现类的设计理念。明白设计这样一个东西只是为了让channel中的方法执行的时候经过后续待设计出来的ChannelPipeline。
-在ChannelPipeline中会进一步调用Unsafe的方法。在本版本中channel的很多方法实现都会移动到Unsafe接口实现类中，但是channel中又会保留部分方法，channel中这部分保留的本来的方法实现待后续结合ChannelPipeline体系进行完善。
+进而在ChannelPipeline中会进一步调用Unsafe的方法。在本版本中channel的很多方法实现都会移动到Unsafe接口实现类中，但是channel中又会保留部分方法，channel中这部分保留的本来的方法实现待后续结合ChannelPipeline体系进行完善。
 * **设计与实现**：Unsafe的继承体系伴随着channel体系进行抽象和实现，具体抽象关系如下：
 
-
+<div style="display: flex; justify-content: space-around; align-items: center;">
+  <div align="center">
+    <img src="./docs/img/version05/Unsafe体系与Channel体系的依附关系.png" alt="Unsafe体系与Channel体系的依附关系" width="400"/>
+    <br/>
+    Unsafe体系与Channel体系的依附关系
+  </div>
+  <div align="center">
+    <img src="./docs/img/version05/NioMessageUnsafe.png" alt="NioMessageUnsafe抽象层次" width="400"/>
+    <br/>
+    NioMessageUnsafe抽象层次
+  </div>
+  <div align="center">
+    <img src="./docs/img/version05/NioByteUnsafe.png" alt="NioByteUnsafe抽象层次" width="400"/>
+    <br/>
+    NioByteUnsafe抽象层次
+  </div>
+</div>
 
 * **功能与效果**：在Netty中，bind、read、connect、writeAndFlush等多种方法都会经过ChannelPipeline，然后在ChannelPipeline的处理器中调用unsafe对象的方法，
 在unsafe对象的方法内，就可以进一步执行到各种channel实现类中以do开头的各种真正干活的方法中了。直接使用unsafe的方法被认为是'不安全'的。

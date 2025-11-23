@@ -81,6 +81,63 @@ public abstract class AbstractNioChannel extends AbstractChannel {
         return selectionKey;
     }
 
+    @Override
+    public NioUnsafe unsafe() {
+        return (NioUnsafe) super.unsafe();
+    }
+
+
+    interface NioUnsafe extends Unsafe {
+        // 获取该channel的java原生Channel
+        SelectableChannel ch();
+
+        void finishConnect();
+
+        // read放到具体的netty NIO channel中去实现，不同的NIOChannel，read逻辑是不一样的
+        // 抽象方法，子类实现，完成read
+        // * 客户端Channel"读"事件处理逻辑：读取IO流数据，然后触发后续处理
+        // * 服务端Channel"读"事件处理逻辑：接受客户端连接，生成服务端侧的客户端Channel，并做后续的处理
+        void read();
+
+        void forceFlush();
+    }
+
+    /**
+     * NioUnsafe的抽象内部类
+     * 内部类（非静态）可以访问外部类的所有成员变量和方法，自动持有对外部类实例的引用
+     */
+    protected abstract class AbstractNioUnsafe extends AbstractUnsafe implements NioUnsafe {
+
+        @Override
+        public final SelectableChannel ch() {
+            return javaChannel();
+        }
+
+        @Override
+        public final void connect(SocketAddress remoteAddress, SocketAddress localAddress, ChannelPromise promise) {
+            try {
+                boolean doConnect = doConnect(remoteAddress, localAddress);
+                if (!doConnect) {
+                    //这里的代码会搞出一个bug，我会在第六个版本的代码中修正，同时也会给大家讲一下bug是怎么产生的。这个bug只会在收发数据时
+                    //体现出来，所以并不会影响我们本节课的测试。我们现在还没有开始收发数据
+                    promise.trySuccess();
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        @Override
+        public final void finishConnect() {
+
+        }
+
+        @Override
+        public final void forceFlush() {
+        }
+
+    }
+
     /**
      * 注册的行为很简单，也很通用，其实就是注册channel到selector上，所以就在这一层统一实现掉
      *
@@ -110,19 +167,9 @@ public abstract class AbstractNioChannel extends AbstractChannel {
         }
     }
 
-
     @Override
-    public final void connect(SocketAddress remoteAddress, SocketAddress localAddress, ChannelPromise promise) {
-        try {
-            boolean doConnect = doConnect(remoteAddress, localAddress);
-            if (!doConnect) {
-                //这里的代码会搞出一个bug，我会在第六个版本的代码中修正，同时也会给大家讲一下bug是怎么产生的。这个bug只会在收发数据时
-                //体现出来，所以并不会影响我们本节课的测试。我们现在还没有开始收发数据
-                promise.trySuccess();
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+    protected void doClose() throws Exception {
+
     }
 
     /**
@@ -133,13 +180,6 @@ public abstract class AbstractNioChannel extends AbstractChannel {
      * @return
      * @throws Exception
      */
-    protected abstract  boolean doConnect(SocketAddress remoteAddress, SocketAddress localAddress) throws Exception;
-
-    /**
-     * 抽象方法，子类实现，完成read
-     * 客户端Channel"读"事件处理逻辑：读取IO流数据，然后触发后续处理
-     * 服务端Channel"读"事件处理逻辑：接受客户端连接，生成服务端侧的客户端Channel，并做后续的处理
-     */
-    protected abstract void read();
+    protected abstract boolean doConnect(SocketAddress remoteAddress, SocketAddress localAddress) throws Exception;
 
 }

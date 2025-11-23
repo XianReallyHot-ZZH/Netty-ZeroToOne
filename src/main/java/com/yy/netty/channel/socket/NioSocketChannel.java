@@ -5,6 +5,7 @@ import com.yy.netty.channel.nio.AbstractNioByteChannel;
 import com.yy.netty.util.internal.SocketUtils;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
@@ -57,6 +58,27 @@ public class NioSocketChannel extends AbstractNioByteChannel {
     }
 
     @Override
+    public InetSocketAddress localAddress() {
+        return (InetSocketAddress) super.localAddress();
+    }
+
+    @Override
+    public InetSocketAddress remoteAddress() {
+        return (InetSocketAddress) super.remoteAddress();
+    }
+
+    @Override
+    protected SocketAddress localAddress0() {
+        return javaChannel().socket().getLocalSocketAddress();
+    }
+
+    @Override
+    protected SocketAddress remoteAddress0() {
+        return javaChannel().socket().getRemoteSocketAddress();
+    }
+
+
+    @Override
     protected void doBind(SocketAddress localAddress) throws Exception {
         doBind0(localAddress);
     }
@@ -107,7 +129,7 @@ public class NioSocketChannel extends AbstractNioByteChannel {
         byte[] buffer = new byte[len];
         byteBuf.flip();
         byteBuf.get(buffer);
-        System.out.println("客户端收到消息:{}"+new String(buffer));
+        System.out.println("客户端收到消息:{}" + new String(buffer));
         //返回读取到的字节长度
         return len;
     }

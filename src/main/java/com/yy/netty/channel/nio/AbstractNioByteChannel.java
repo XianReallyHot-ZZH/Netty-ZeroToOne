@@ -13,27 +13,36 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
     /**
      * 构造方法
      *
-     * @param parent         服务端产生的客户端SocketChannel才会有父Channel
-     * @param ch             对应的NIO Channel
+     * @param parent 服务端产生的客户端SocketChannel才会有父Channel
+     * @param ch     对应的NIO Channel
      */
     protected AbstractNioByteChannel(Channel parent, SelectableChannel ch) {
         super(parent, ch, SelectionKey.OP_READ);
     }
 
-    /**
-     * 客户端channel“读”事件处理逻辑:
-     * 其实就是从SocketChannel上进行IO读取
-     */
     @Override
-    protected void read() {
-        //暂时用最原始简陋的方法处理
-        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
-        try {
-            doReadBytes(byteBuf);
-        } catch (Exception e) {
-            e.printStackTrace();
+    protected AbstractUnsafe newUnsafe() {
+        return new NioByteUnsafe();
+    }
+
+    protected final class NioByteUnsafe extends AbstractNioUnsafe {
+
+        /**
+         * 客户端channel“读”事件处理逻辑:
+         * 其实就是从SocketChannel上进行IO读取
+         */
+        @Override
+        public void read() {
+            //暂时用最原始简陋的方法处理
+            ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+            try {
+                doReadBytes(byteBuf);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
     }
+
 
     /**
      * 抽象方法，子类具体实现对SocketChannel的IO读取

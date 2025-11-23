@@ -38,7 +38,7 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
         super.doBeginRead();
     }
 
-    private final class NioMessageUnsafe extends AbstractNioUnsafe {
+    protected final class NioMessageUnsafe extends AbstractNioUnsafe {
 
         // 存放服务端建立的客户端连接，先简单处理，该成员变量本来在NioMessageUnsafe静态内部类中
         private final List<Object> readBuf = new ArrayList<Object>();

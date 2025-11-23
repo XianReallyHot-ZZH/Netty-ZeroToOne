@@ -89,6 +89,8 @@ public interface Channel extends ChannelOutboundInvoker {
 
 
     /**
+     * channel某些方法或者能力的非安全实现，接口定义
+     *
      * 看到这个接口中的方法，是不是发现很多都和ChannelOutboundInvoker这个类中的重复？
      * 稍微想一想就会明白，channel调用方法（ChannelOutboundInvoker的方法），但真正执行还是由unsafe的实现类来执行，虽然最后有可能还是调用到channel中
      * unsafe是配合channelOutboundInvoker的，为ChannelOutboundInvoker提供具体非安全的方法实现

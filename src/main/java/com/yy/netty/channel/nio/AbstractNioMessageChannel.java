@@ -14,9 +14,6 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
     // 当该属性为true时，服务端将不再接受来自客户端的数据
     boolean inputShutdown;
 
-    // 存放服务端建立的客户端连接，先简单处理，该成员变量本来在NioMessageUnsafe静态内部类中
-    private final List<Object> readBuf = new ArrayList<Object>();
-
     /**
      * 构造方法
      *
@@ -29,12 +26,65 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
     }
 
     @Override
+    protected AbstractNioUnsafe newUnsafe() {
+        return new NioMessageUnsafe();
+    }
+
+    @Override
     protected void doBeginRead() throws Exception {
         if (inputShutdown) {
-            super.doBeginRead();
+            return;
         }
         super.doBeginRead();
     }
+
+    private final class NioMessageUnsafe extends AbstractNioUnsafe {
+
+        // 存放服务端建立的客户端连接，先简单处理，该成员变量本来在NioMessageUnsafe静态内部类中
+        private final List<Object> readBuf = new ArrayList<Object>();
+
+        /**
+         * 服务端channel“读”事件的处理逻辑：
+         * 其实就是从ServerSocketChannel上接受客户端连接，生成客户端channel，把将其注册到工作线程上
+         */
+        @Override
+        public void read() {
+
+            //该方法要在netty的线程执行器中执行
+            assert eventLoop().inEventLoop(Thread.currentThread());
+            boolean closed = false;
+            Throwable exception = null;
+            try {
+                do {
+                    //创建客户端的连接，存放在集合中
+                    int localRead = doReadMessages(readBuf);
+                    //返回值为0表示没有连接，直接退出即可
+                    if (localRead == 0) {
+                        break;
+                    }
+                } while (true);
+            } catch (Throwable t) {
+                exception = t;
+            }
+            // 处理前面创建的客户端连接
+            int size = readBuf.size();
+            for (int i = 0; i < size; i++) {
+                readPending = false;
+                //把每一个客户端的channel注册到工作线程上,这里得不到workgroup，所以我们不在这里实现了，打印一下即可
+                Channel child = (Channel) readBuf.get(i);
+                System.out.println(child + "收到客户端的channel了");
+                // TODO：客户端的channel注册到工作线程上
+
+            }
+            //清除集合
+            readBuf.clear();
+            if (exception != null) {
+                throw new RuntimeException(exception);
+            }
+
+        }
+    }
+
 
     /**
      * 子类来具体完成对“read”事件的处理，其实服务端channel这里就是完成对OP_ACCEPT的处理实现了，说白了就是处理连接，生成客户端channel
@@ -44,42 +94,4 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
      */
     protected abstract int doReadMessages(List<Object> buf) throws Exception;
 
-    /**
-     * 服务端channel“读”事件的处理逻辑：
-     * 其实就是从ServerSocketChannel上接受客户端连接，生成客户端channel，把将其注册到工作线程上
-     */
-    @Override
-    protected void read() {
-        //该方法要在netty的线程执行器中执行
-        assert eventLoop().inEventLoop(Thread.currentThread());
-        boolean closed = false;
-        Throwable exception = null;
-        try {
-            do {
-                //创建客户端的连接，存放在集合中
-                int localRead = doReadMessages(readBuf);
-                //返回值为0表示没有连接，直接退出即可
-                if (localRead == 0) {
-                    break;
-                }
-            } while (true);
-        } catch (Throwable t) {
-            exception = t;
-        }
-        // 处理前面创建的客户端连接
-        int size = readBuf.size();
-        for (int i = 0; i < size; i++) {
-            readPending = false;
-            //把每一个客户端的channel注册到工作线程上,这里得不到workgroup，所以我们不在这里实现了，打印一下即可
-            Channel child = (Channel) readBuf.get(i);
-            System.out.println(child + "收到客户端的channel了");
-            // TODO：客户端的channel注册到工作线程上
-
-        }
-        //清除集合
-        readBuf.clear();
-        if (exception != null) {
-            throw new RuntimeException(exception);
-        }
-    }
 }

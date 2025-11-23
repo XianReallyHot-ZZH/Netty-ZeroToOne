@@ -5,6 +5,7 @@ import com.yy.netty.channel.nio.NioEventLoop;
 import com.yy.netty.util.internal.SocketUtils;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.ServerSocketChannel;
@@ -52,6 +53,27 @@ public class NioServerSocketChannel extends AbstractNioMessageChannel {
     public NioEventLoop eventLoop() {
         return (NioEventLoop) super.eventLoop();
     }
+
+    @Override
+    public InetSocketAddress localAddress() {
+        return (InetSocketAddress) super.localAddress();
+    }
+
+    @Override
+    public InetSocketAddress remoteAddress() {
+        return (InetSocketAddress) super.remoteAddress();
+    }
+
+    @Override
+    protected SocketAddress localAddress0() {
+        return SocketUtils.localSocketAddress(javaChannel().socket());
+    }
+
+    @Override
+    protected SocketAddress remoteAddress0() {
+        return null;
+    }
+
 
     /**
      * 这里做空实现即可，服务端的channel并不会做连接动作

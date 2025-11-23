@@ -2,6 +2,7 @@ package com.yy.netty.util.internal;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.ServerSocket;
 import java.net.SocketAddress;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
@@ -88,4 +89,18 @@ public class SocketUtils {
     }
 
 
+    /**
+     * 获取服务端的本地端口
+     *
+     * @param socket
+     * @return
+     */
+    public static SocketAddress localSocketAddress(ServerSocket socket) {
+        return AccessController.doPrivileged(new PrivilegedAction<SocketAddress>() {
+            @Override
+            public SocketAddress run() {
+                return socket.getLocalSocketAddress();
+            }
+        });
+    }
 }

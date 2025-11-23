@@ -1,8 +1,6 @@
 package com.yy.netty.channel.nio;
 
-import com.yy.netty.channel.EventLoopTaskQueueFactory;
-import com.yy.netty.channel.SelectStrategy;
-import com.yy.netty.channel.SingleThreadEventLoop;
+import com.yy.netty.channel.*;
 import com.yy.netty.util.concurrent.RejectedExecutionHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -171,6 +169,8 @@ public class NioEventLoop extends SingleThreadEventLoop {
      */
     private void processSelectedKey(SelectionKey key, AbstractNioChannel ch) throws Exception {
         try {
+            //获取Unsafe类
+            final AbstractNioChannel.NioUnsafe unsafe = ch.unsafe();
             //得到key感兴趣的事件
             int ops = key.interestOps();
             //如果是连接事件,该事件只会出现在客户端channel中
@@ -186,11 +186,11 @@ public class NioEventLoop extends SingleThreadEventLoop {
             // 下面两个逻辑，其实就是把具体的read实现委托给了具体的channel，这个具体的channel其实就是key上作为附件绑定的那个具体的netty channel了
             if (ops == SelectionKey.OP_READ) {
                 // 其实只有客户端channel才会触发OP_READ事件，很自然的，这里ch的实例肯定就是NioSocketChannel
-                ch.read();
+                unsafe.read();
             }
             if (ops == SelectionKey.OP_ACCEPT) {
                 // 服务端channel才会触发OP_ACCEPT事件，很自然的，这里ch的实例肯定就是NioServerSocketChannel
-                ch.read();
+                unsafe.read();
             }
         } catch (CancelledKeyException ignored) {
             throw new RuntimeException(ignored.getMessage());

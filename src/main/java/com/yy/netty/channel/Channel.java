@@ -17,7 +17,7 @@ import java.net.SocketAddress;
  * 具体为serverSocketChannel只需要注册和响应OP_ACCEPT，客户端socketChannel直接注册和响应OP_READ即可
  * </p>
  */
-public interface Channel {
+public interface Channel extends ChannelOutboundInvoker {
 
     ChannelId id();
 
@@ -75,45 +75,65 @@ public interface Channel {
     ChannelFuture closeFuture();
 
     /**
-     * 关闭本channel，该方法并不在此接口，而是在ChannelOutboundInvoker接口，现在先放在这里
+     * 获取本channel的unsafe,unsafe定义了非安全的方法API，比如register、bind、connect等
      *
      * @return
      */
-    ChannelFuture close();
+    Unsafe unsafe();
+
+    @Override
+    Channel read();
+
+    @Override
+    Channel flush();
+
 
     /**
-     * 绑定本channel到本地服务端口(只有服务端的channel才会实现该方法)，该方法并不在此接口，而是在ChannelOutboundInvoker接口，现在先放在这里
-     * 服务端channel一定要实现该方法，客户端channel可以实现该方法（不实现可以）
-     *
-     * @param localAddress  本地服务端口
-     * @param promise       和本次绑定逻辑相关的ChannelPromise协调器
+     * 看到这个接口中的方法，是不是发现很多都和ChannelOutboundInvoker这个类中的重复？
+     * 稍微想一想就会明白，channel调用方法（ChannelOutboundInvoker的方法），但真正执行还是由unsafe的实现类来执行，虽然最后有可能还是调用到channel中
+     * unsafe是配合channelOutboundInvoker的，为ChannelOutboundInvoker提供具体非安全的方法实现
      */
-    void bind(SocketAddress localAddress, ChannelPromise promise);
+    interface Unsafe {
 
-    /**
-     * 连接本channel到远程服务端口(只有客户端的channel才会实现该方法)，该方法并不在此接口，而是在ChannelOutboundInvoker接口，现在先放在这里
-     *
-     * @param remoteAddress
-     * @param localAddress
-     * @param promise
-     */
-    void connect(SocketAddress remoteAddress, final SocketAddress localAddress, ChannelPromise promise);
+        SocketAddress localAddress();
 
-    /**
-     * 注册本channel到指定的EventLoop（完成channel到Selector的绑定），该方法并不在此接口，而是在ChannelOutboundInvoker接口，现在先放在这里
-     * 服务端channel和客户端channel都要实现该方法,两种channel的初始化流程种会有这一步
-     *
-     * @param eventLoop     指定的EventLoop
-     * @param promise       和本次注册逻辑相关的ChannelPromise协调器
-     */
-    void register(EventLoop eventLoop, ChannelPromise promise);
+        SocketAddress remoteAddress();
 
-    /**
-     * 为本channel注册读事件，该方法并不在此接口，而是在ChannelOutboundInvoker接口，现在先放在这里
-     * 这地方的读是一种抽象的概念，具体不同的channel关注的读事件是不一样的
-     * 服务端channel的“读”事件：OP_ACCEPT
-     * 客户端channel的“读”事件：OP_READ
-     */
-    void beginRead();
+        /**
+         * 注册本channel到指定的EventLoop（完成channel到Selector的绑定），该方法并不在此接口，而是在ChannelOutboundInvoker接口，现在先放在这里
+         * 服务端channel和客户端channel都要实现该方法,两种channel的初始化流程种会有这一步
+         *
+         * @param eventLoop     指定的EventLoop
+         * @param promise       和本次注册逻辑相关的ChannelPromise协调器
+         */
+        void register(EventLoop eventLoop, ChannelPromise promise);
+
+        void deregister(ChannelPromise promise);
+
+        void bind(SocketAddress localAddress, ChannelPromise promise);
+
+        void connect(SocketAddress remoteAddress, SocketAddress localAddress, ChannelPromise promise);
+
+        void disconnect(ChannelPromise promise);
+
+        void close(ChannelPromise promise);
+
+        void closeForcibly();
+
+        /**
+         * 为本channel注册读事件，该方法并不在此接口，而是在ChannelOutboundInvoker接口，现在先放在这里
+         * 这地方的读是一种抽象的概念，具体不同的channel关注的读事件是不一样的
+         * 服务端channel的“读”事件：OP_ACCEPT
+         * 客户端channel的“读”事件：OP_READ
+         */
+        void beginRead();
+
+        void write(Object msg, ChannelPromise promise);
+
+        void flush();
+
+
+    }
+
 
 }

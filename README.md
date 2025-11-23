@@ -85,5 +85,14 @@ NioServerSocketChannel、NioSocketChannel、DefaultChannelFuture三个类各自�
 
 * **功能与效果**：本迭代版本功能较第三版本没有太大区别，没有新增的功能，主要是对channel体系的重构，在整体架构上进行调整优化，为后续版本铺垫。使用案例和效果请参考ServerTest和ClientTest两个测试类。
 
+## version-05
+* **目标**：在channel体系中引入Unsafe设计模式，搞清楚Netty中Unsafe接口和其实现类的设计理念。明白设计这样一个东西只是为了让channel中的方法执行的时候经过后续待设计出来的ChannelPipeline。
+在ChannelPipeline中会进一步调用Unsafe的方法。在本版本中channel的很多方法实现都会移动到Unsafe接口实现类中，但是channel中又会保留部分方法，channel中这部分保留的本来的方法实现待后续结合ChannelPipeline体系进行完善。
+* **设计与实现**：Unsafe的继承体系伴随着channel体系进行抽象和实现，具体抽象关系如下：
+
+
+
+* **功能与效果**：在Netty中，bind、read、connect、writeAndFlush等多种方法都会经过ChannelPipeline，然后在ChannelPipeline的处理器中调用unsafe对象的方法，
+在unsafe对象的方法内，就可以进一步执行到各种channel实现类中以do开头的各种真正干活的方法中了。直接使用unsafe的方法被认为是'不安全'的。
 
 

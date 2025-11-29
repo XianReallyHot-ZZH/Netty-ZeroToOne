@@ -135,4 +135,10 @@ public class NioServerSocketChannel extends AbstractNioMessageChannel {
         return 0;
     }
 
+    @Override
+    protected void doFinishConnect() throws Exception {
+        // 服务端不做处理
+        throw new UnsupportedOperationException();
+    }
+
 }

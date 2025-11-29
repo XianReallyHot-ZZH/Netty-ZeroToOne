@@ -91,6 +91,7 @@ public abstract class AbstractNioChannel extends AbstractChannel {
         // 获取该channel的java原生Channel
         SelectableChannel ch();
 
+        // 完成连接的结尾工作
         void finishConnect();
 
         // read放到具体的netty NIO channel中去实现，不同的NIOChannel，read逻辑是不一样的
@@ -129,7 +130,13 @@ public abstract class AbstractNioChannel extends AbstractChannel {
 
         @Override
         public final void finishConnect() {
-
+            assert eventLoop().inEventLoop(Thread.currentThread());
+            try {
+                //真正处理连接完成的方法
+                doFinishConnect();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
 
         @Override
@@ -181,5 +188,12 @@ public abstract class AbstractNioChannel extends AbstractChannel {
      * @throws Exception
      */
     protected abstract boolean doConnect(SocketAddress remoteAddress, SocketAddress localAddress) throws Exception;
+
+    /**
+     * 抽象方法，子类实现，完成finishConnect
+     *
+     * @throws Exception
+     */
+    protected abstract void doFinishConnect() throws Exception;
 
 }

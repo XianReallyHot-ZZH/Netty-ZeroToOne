@@ -181,6 +181,8 @@ public class NioEventLoop extends SingleThreadEventLoop {
                 key.interestOps(ops);
                 //走到这里说明客户端channel连接成功了，那么就可以真正为该channel注册读事件，开始进入循环处理客户端IO读事件了
                 ch.doBeginRead();
+                // 这里要做客户端真正的连接处理
+                unsafe.finishConnect();
             }
 
             // 下面两个逻辑，其实就是把具体的read实现委托给了具体的channel，这个具体的channel其实就是key上作为附件绑定的那个具体的netty channel了

@@ -152,4 +152,11 @@ public class NioSocketChannel extends AbstractNioByteChannel {
         System.out.println("[MOCK]客户端发送数据成功了！");
     }
 
+    @Override
+    protected void doFinishConnect() throws Exception {
+        if (!javaChannel().finishConnect()) {
+            throw new Error();
+        }
+    }
+
 }

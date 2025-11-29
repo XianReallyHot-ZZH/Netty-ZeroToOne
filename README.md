@@ -114,7 +114,8 @@ NioServerSocketChannel、NioSocketChannel、DefaultChannelFuture三个类各自�
 
 ## version-05
 * **目标**：在版本5的基础上增加客户端的write数据发送能力，服务端接受到客户端channel后的绑定和读数据接收能力待后续进一步完善。
-* **设计与实现**：实现ChannelOutboundInvoker接口的writeAndFlush方法，实现Unsafe的write方法，最终在NioSocketChannel中实现doWrite方法
+* **设计与实现**：实现ChannelOutboundInvoker接口的writeAndFlush方法，实现Unsafe的write方法，在NioSocketChannel中具体实现doWrite方法。
+实现unsafe的finishConnect方法，在NioSocketChannel和NioServerSocketChannel分别实现finishConnect的具体逻辑。
 * **功能与效果**：客户端端连接至服务端后，发送数据到服务端，证明客户端的write能力正常。
 
 

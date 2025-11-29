@@ -112,3 +112,9 @@ NioServerSocketChannel、NioSocketChannel、DefaultChannelFuture三个类各自�
 在unsafe对象的方法内，就可以进一步执行到各种channel实现类中以do开头的各种真正干活的方法中了。直接使用unsafe的方法被认为是'不安全'的。
 
 
+## version-05
+* **目标**：在版本5的基础上增加客户端的write数据发送能力，服务端接受到客户端channel后的绑定和读数据接收能力待后续进一步完善。
+* **设计与实现**：实现ChannelOutboundInvoker接口的writeAndFlush方法，实现Unsafe的write方法，最终在NioSocketChannel中实现doWrite方法
+* **功能与效果**：客户端端连接至服务端后，发送数据到服务端，证明客户端的write能力正常。
+
+

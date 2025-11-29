@@ -138,4 +138,18 @@ public class NioSocketChannel extends AbstractNioByteChannel {
         javaChannel().close();
     }
 
+    @Override
+    protected void doWrite(Object msg) throws Exception {
+        //真正发送数据的时候到了，这时候就不能用NioSocketChannel了，要用java原生的socketchannel
+        SocketChannel socketChannel = javaChannel();
+        //转换数据类型
+        ByteBuffer buffer = (ByteBuffer)msg;
+        //发送数据
+        socketChannel.write(buffer);
+        //因为在我们自己的netty中，客户端的channel连接到服务端后，并没有绑定单线程执行器呢，所以即便发送了数据也收不到
+        //但我们可以看看客户端是否可以发送成功，证明我们的发送逻辑是没问题的，
+        // 接收数据的验证，放到引入channelhandler之后再验证
+        System.out.println("[MOCK]客户端发送数据成功了！");
+    }
+
 }

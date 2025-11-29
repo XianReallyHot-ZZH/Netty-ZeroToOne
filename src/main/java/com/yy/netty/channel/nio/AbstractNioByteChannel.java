@@ -51,4 +51,16 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
      * @throws Exception
      */
     protected abstract int doReadBytes(ByteBuffer byteBuf) throws Exception;
+
+    /**
+     * 抽象方法，子类具体实现对SocketChannel的IO写入
+     *
+     * @param msg
+     * @throws Exception
+     */
+    @Override
+    protected void doWrite(Object msg) throws Exception {
+
+    }
+
 }

@@ -222,7 +222,9 @@ public abstract class AbstractChannel implements Channel {
 
     @Override
     public ChannelFuture writeAndFlush(Object msg) {
-        return null;
+        DefaultChannelPromise promise = new DefaultChannelPromise(this);
+        unsafe.write(msg, promise);
+        return promise;
     }
 
     @Override
@@ -418,7 +420,14 @@ public abstract class AbstractChannel implements Channel {
 
         @Override
         public final void write(Object msg, ChannelPromise promise) {
-
+            try {
+                // 调用子类的写方法
+                doWrite(msg);
+                //如果有监听器，这里可以通知监听器执行回调方法
+                promise.trySuccess();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
 
         @Override
@@ -467,6 +476,14 @@ public abstract class AbstractChannel implements Channel {
      * @return
      */
     protected abstract boolean isCompatible(EventLoop eventLoop);
+
+    /**
+     * 由子类来具体实现，具体的写方法实现，具体实现涉及到NIO相关类使用，放到具体的业务子类去实现
+     *
+     * @param msg
+     * @throws Exception
+     */
+    protected abstract void doWrite(Object msg) throws Exception;
 
     /**
      * 由子类来具体实现，具体的注册实现涉及到NIO相关类的使用了，我们把这部分放到NioChannel抽象类中去实现

@@ -28,7 +28,9 @@ public class ClientTest {
         // 模拟发送
         Thread.sleep(3000);
         Channel channel = future.channel();
-        channel.writeAndFlush(ByteBuffer.wrap("我是真正的netty-Client！".getBytes()));
+//        channel.writeAndFlush(ByteBuffer.wrap("我是真正的netty-Client！".getBytes()));
+        channel.writeAndFlush(ByteBuffer.wrap("我是真正的netty！".getBytes()));
+        System.out.println("客户端发送数据demo完结");
 
     }
 

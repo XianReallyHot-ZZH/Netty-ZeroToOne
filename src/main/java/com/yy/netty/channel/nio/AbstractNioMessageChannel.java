@@ -94,4 +94,15 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
      */
     protected abstract int doReadMessages(List<Object> buf) throws Exception;
 
+    /**
+     * 服务端channel“write”事件处理逻辑,现在什么都不做，后面再做实现
+     *
+     * @param msg
+     * @throws Exception
+     */
+    @Override
+    protected void doWrite(Object msg) throws Exception {
+
+    }
+
 }

@@ -119,3 +119,18 @@ NioServerSocketChannel、NioSocketChannel、DefaultChannelFuture三个类各自�
 * **功能与效果**：客户端端连接至服务端后，发送数据到服务端，证明客户端的write能力正常。
 
 
+## version-07
+* **目标**：本版本将完成 Netty 的 channelConfig 配置参数体系的搭建。通过抽象出 Constant 常量体系、ConstantPool 常量池、ChannelOption 配置项体系，
+并重构 ServerBootstrap 和 Bootstrap 以支持配置项引导，从而综合实现服务端和客户端的配置参数体系。
+* **设计与实现**：分别对 Constant 常量体系、ChannelOption 配置项体系以及 channelConfig 配置参数体系进行抽象与实现，其抽象关系如下所示（TODO）。
+* **功能与效果**：实现 Netty 引导类的 option 方法，为用户提供设置配置参数的入口，最终在流程上完成各个配置参数的生效设置。使用案例和效果请参考ServerTest和ClientTest两个测试类。
+
+
+
+
+
+
+
+
+
+

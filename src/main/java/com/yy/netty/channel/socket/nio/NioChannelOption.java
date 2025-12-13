@@ -12,7 +12,10 @@ import java.util.Set;
 /**
  * 适配JDK中NIO的原生SocketOption的扩展出来的ChannelOption配置项
  * 这个配置项会更特别一点，针对的是能直接配到JDK原生NetworkChannel的配置项-SocketOption，并且提供了能直接设置到JDK原生NetworkChannel的API（比如设置配置项的值的setOption这种方法）
- * 这类配置项真正起效是在NIO原生体系里的，‘游离’在netty的channelConfig体系之外的，其实应该表述为netty的channelConfig体系是囊括了这部分。
+ * 这类配置项真正起效是在NIO原生体系里的，‘游离’在netty的channelConfig体系之外的，其实应该表述为netty的channelConfig体系是囊括了这部分，netty参数完成真正设置又细分为了如下三部分：
+ * 1、NetworkChannel的SocketOption体系
+ * 2、Socket和ServerSocket的采用直接的方法调用方式设置配置
+ * 3、netty自己的channelConfig的参数管理和设置保存
  *
  * @param <T>
  */

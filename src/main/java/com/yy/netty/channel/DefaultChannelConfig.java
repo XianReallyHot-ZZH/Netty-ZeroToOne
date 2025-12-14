@@ -43,7 +43,12 @@ public class DefaultChannelConfig implements ChannelConfig {
     }
 
 
-    // 获取所有默认参数项及其值
+    /**
+     * 获取所有默认参数项及其值
+     * 子类可以继承这个类，并添加自己支持的参数项及其值
+     *
+     * @return
+     */
     @Override
     public Map<ChannelOption<?>, Object> getOptions() {
         // 默认支持如下ChannelOption参数
@@ -51,6 +56,13 @@ public class DefaultChannelConfig implements ChannelConfig {
                 AUTO_READ, AUTO_CLOSE, SINGLE_EVENTEXECUTOR_PER_GROUP);
     }
 
+    /**
+     * 往集合参数result中添加参数项及其值，并返回集合参数的结果
+     *
+     * @param result
+     * @param options
+     * @return
+     */
     protected Map<ChannelOption<?>, Object> getOptions(Map<ChannelOption<?>, Object> result, ChannelOption<?>... options) {
         if (result == null) {
             //IdentityHashMap是java自己的map，这个map允许放入相同的key，实际上是因为这个map判断相等采用的是地址值
@@ -63,7 +75,7 @@ public class DefaultChannelConfig implements ChannelConfig {
         return result;
     }
 
-    // 批量设置参数项及其值
+    // 批量设置参数项及其值，实现上其实还是一个一个的setOption
     @Override
     public boolean setOptions(Map<ChannelOption<?>, ?> options) {
         if (options == null) {
@@ -79,7 +91,14 @@ public class DefaultChannelConfig implements ChannelConfig {
         return setAllOptions;
     }
 
-    // 获取参数项的值
+    /**
+     * 获取参数项的值
+     * 子类可以继承这个类，并添加自己支持的参数项及其值的获取逻辑
+     *
+     * @param option
+     * @return
+     * @param <T>
+     */
     @Override
     public <T> T getOption(ChannelOption<T> option) {
         if (option == null) {
@@ -101,7 +120,15 @@ public class DefaultChannelConfig implements ChannelConfig {
         return null;
     }
 
-    // 设置参数项及其值
+    /**
+     * 设置参数项及其值
+     * 子类可以继承这个类，并添加自己支持的参数项及其值的设置逻辑
+     *
+     * @param option
+     * @param value
+     * @return
+     * @param <T>
+     */
     @Override
     public <T> boolean setOption(ChannelOption<T> option, T value) {
         validate(option, value);

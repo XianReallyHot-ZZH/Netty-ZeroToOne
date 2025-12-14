@@ -20,7 +20,7 @@ public interface ChannelConfig {
     // 设置指定channel的配置项及其值
     <T> boolean setOption(ChannelOption<T> option, T value);
 
-    // ------------------------------------------------------ 一些channel常见的配置项的常用方法 ------------------------------------------------------
+    // ------------------------------------------------------ 一些channel常见、具体的配置项的常见方法 ------------------------------------------------------
     int getConnectTimeoutMillis();
 
     ChannelConfig setConnectTimeoutMillis(int connectTimeoutMillis);

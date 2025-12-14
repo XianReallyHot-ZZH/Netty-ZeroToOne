@@ -122,7 +122,10 @@ NioServerSocketChannel、NioSocketChannel、DefaultChannelFuture三个类各自�
 ## version-07
 * **目标**：本版本将完成 Netty 的 channelConfig 配置参数体系的搭建。通过抽象出 Constant 常量体系、ConstantPool 常量池、ChannelOption 配置项体系，
 并重构 ServerBootstrap 和 Bootstrap 以支持配置项引导，从而综合实现服务端和客户端的配置参数体系。
-* **设计与实现**：分别对 Constant 常量体系、ChannelOption 配置项体系以及 channelConfig 配置参数体系进行抽象与实现，其抽象关系如下所示（TODO）。
+* **设计与实现**：分别对 Constant 常量体系、ChannelOption 配置项体系以及 channelConfig 配置参数体系进行抽象与实现，其中配置参数体系会稍微复杂一点，因为涉及和原生JDK的NIO源码打交道，其大致是这么个关系：
+  * 和NetworkChannel的SocketOption参数体系打交道，大致对应的就是NioServerSocketChannelConfig和NioSocketChannelConfig
+  * 和Socket、ServerSocket的采用直接方法调用方式设置配置的体系打交道,大致对应的就是DefaultServerSocketChannelConfig和DefaultSocketChannelConfig
+  * 最后是netty自己的channelConfig的参数管理和设置保存，大致对应的就是ChannelConfig
 * **功能与效果**：实现 Netty 引导类的 option 方法，为用户提供设置配置参数的入口，最终在流程上完成各个配置参数的生效设置。使用案例和效果请参考ServerTest和ClientTest两个测试类。
 
 

@@ -4,7 +4,6 @@ import com.yy.netty.channel.ChannelConfig;
 
 /**
  * 客户端SocketChannel的配置类，在ChannelConfig的基础上增加了若干服务端SocketChannel的配置项
- *
  */
 public interface SocketChannelConfig extends ChannelConfig {
 

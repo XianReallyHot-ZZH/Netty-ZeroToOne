@@ -4,7 +4,7 @@ import java.util.Map;
 
 /**
  * channel的配置接口，赋予channel对配置项的管理，存储，设置起效等功能，通常一个channel会持有一个属于自己的config对象，channel和config是一对一的关系
- * 暂时不定义方法，放到后面再真正引入了
+ * 这部分定义出来的各种具体的配置项，给我感觉应该是netty自己扩展出来给自己用的一些配置项了
  */
 public interface ChannelConfig {
 

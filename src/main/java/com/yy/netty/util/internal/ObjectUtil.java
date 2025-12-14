@@ -31,4 +31,15 @@ public final class ObjectUtil {
         return arg;
     }
 
+    /**
+     * Checks that the given argument is positive or zero. If it is not , throws {@link IllegalArgumentException}.
+     * Otherwise, returns the argument.
+     */
+    public static int checkPositiveOrZero(int i, String name) {
+        if (i < 0) {
+            throw new IllegalArgumentException(name + ": " + i + " (expected: >= 0)");
+        }
+        return i;
+    }
+
 }

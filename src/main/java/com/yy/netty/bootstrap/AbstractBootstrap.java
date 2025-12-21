@@ -71,7 +71,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
     }
 
     /**
-     * 设置channel类型
+     * 根据入参的channel类创建channel的工厂，用于后续生产指定类型的channel实例
      *
      * @param channelClass
      * @return

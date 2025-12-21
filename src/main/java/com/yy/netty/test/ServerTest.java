@@ -4,7 +4,7 @@ import com.yy.netty.bootstrap.ServerBootstrap;
 import com.yy.netty.channel.Channel;
 import com.yy.netty.channel.ChannelFuture;
 import com.yy.netty.channel.nio.NioEventLoopGroup;
-import com.yy.netty.channel.socket.NioServerSocketChannel;
+import com.yy.netty.channel.socket.nio.NioServerSocketChannel;
 import com.yy.netty.util.concurrent.Future;
 import com.yy.netty.util.concurrent.GenericFutureListener;
 

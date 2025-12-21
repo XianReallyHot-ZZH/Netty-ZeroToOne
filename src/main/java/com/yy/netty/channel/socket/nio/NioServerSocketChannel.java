@@ -1,4 +1,4 @@
-package com.yy.netty.channel.socket;
+package com.yy.netty.channel.socket.nio;
 
 import com.yy.netty.channel.nio.AbstractNioMessageChannel;
 import com.yy.netty.channel.nio.NioEventLoop;

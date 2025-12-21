@@ -4,7 +4,7 @@ import com.yy.netty.bootstrap.Bootstrap;
 import com.yy.netty.channel.Channel;
 import com.yy.netty.channel.ChannelFuture;
 import com.yy.netty.channel.nio.NioEventLoopGroup;
-import com.yy.netty.channel.socket.NioSocketChannel;
+import com.yy.netty.channel.socket.nio.NioSocketChannel;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;

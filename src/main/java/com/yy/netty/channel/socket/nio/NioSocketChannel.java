@@ -1,4 +1,4 @@
-package com.yy.netty.channel.socket;
+package com.yy.netty.channel.socket.nio;
 
 import com.yy.netty.channel.Channel;
 import com.yy.netty.channel.nio.AbstractNioByteChannel;

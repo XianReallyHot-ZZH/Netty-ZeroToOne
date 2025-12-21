@@ -1,16 +1,21 @@
 package com.yy.netty.channel.socket.nio;
 
 import com.yy.netty.channel.Channel;
+import com.yy.netty.channel.ChannelOption;
 import com.yy.netty.channel.nio.AbstractNioByteChannel;
+import com.yy.netty.channel.socket.DefaultSocketChannelConfig;
+import com.yy.netty.channel.socket.SocketChannelConfig;
 import com.yy.netty.util.internal.SocketUtils;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.nio.channels.spi.SelectorProvider;
+import java.util.Map;
 
 /**
  * 客户端channel的最终实现类
@@ -20,7 +25,6 @@ public class NioSocketChannel extends AbstractNioByteChannel {
 
     private static final SelectorProvider DEFAULT_SELECTOR_PROVIDER = SelectorProvider.provider();
 
-
     private static SocketChannel newSocket(SelectorProvider provider) {
         try {
             return provider.openSocketChannel();
@@ -28,6 +32,8 @@ public class NioSocketChannel extends AbstractNioByteChannel {
             throw new RuntimeException("Failed to open a socket.", e);
         }
     }
+
+    private final SocketChannelConfig config;
 
     public NioSocketChannel() {
         this(DEFAULT_SELECTOR_PROVIDER);
@@ -43,6 +49,12 @@ public class NioSocketChannel extends AbstractNioByteChannel {
 
     public NioSocketChannel(Channel parent, SocketChannel socket) {
         super(parent, socket);
+        config = new NioSocketChannelConfig(this, socket.socket());
+    }
+
+    @Override
+    public SocketChannelConfig config() {
+        return config;
     }
 
     @Override
@@ -143,7 +155,7 @@ public class NioSocketChannel extends AbstractNioByteChannel {
         //真正发送数据的时候到了，这时候就不能用NioSocketChannel了，要用java原生的socketchannel
         SocketChannel socketChannel = javaChannel();
         //转换数据类型
-        ByteBuffer buffer = (ByteBuffer)msg;
+        ByteBuffer buffer = (ByteBuffer) msg;
         //发送数据
         socketChannel.write(buffer);
         //因为在我们自己的netty中，客户端的channel连接到服务端后，并没有绑定单线程执行器呢，所以即便发送了数据也收不到
@@ -156,6 +168,88 @@ public class NioSocketChannel extends AbstractNioByteChannel {
     protected void doFinishConnect() throws Exception {
         if (!javaChannel().finishConnect()) {
             throw new Error();
+        }
+    }
+
+    /**
+     * 用户设置的客户端channel的参数由此类进行设置，这里面有的方法现在还不需要是用来干什么的，等学完ByteBuf了就明白了
+     */
+    private final class NioSocketChannelConfig extends DefaultSocketChannelConfig {
+
+        // 现在还不知道这个参数是干嘛的，暂且先不考虑这个参数
+        private volatile int maxBytesPerGatheringWrite = Integer.MAX_VALUE;
+
+        public NioSocketChannelConfig(NioSocketChannel channel, Socket javaSocket) {
+            super(channel, javaSocket);
+            calculateMaxBytesPerGatheringWrite();
+        }
+
+        /**
+         * 重写setOption方法，支持客户端NIO原生channel配置项的设置
+         *
+         * @param option
+         * @param value
+         * @param <T>
+         * @return
+         */
+        @Override
+        public <T> boolean setOption(ChannelOption<T> option, T value) {
+            if (option instanceof NioChannelOption) {
+                return NioChannelOption.setOption(jdkChannel(), (NioChannelOption<T>) option, value);
+            }
+            return super.setOption(option, value);
+        }
+
+        /**
+         * 重写getOption方法，支持客户端NIO原生channel配置项的获取
+         *
+         * @param option
+         * @param <T>
+         * @return
+         */
+        @Override
+        public <T> T getOption(ChannelOption<T> option) {
+            if (option instanceof NioChannelOption) {
+                return NioChannelOption.getOption(jdkChannel(), (NioChannelOption<T>) option);
+            }
+            return super.getOption(option);
+        }
+
+        /**
+         * 重写getOptions方法，支持客户端NIO原生channel配置项的获取
+         *
+         * @return
+         */
+        @SuppressWarnings("unchecked")
+        @Override
+        public Map<ChannelOption<?>, Object> getOptions() {
+            return getOptions(super.getOptions(), NioChannelOption.getOptions(jdkChannel()));
+        }
+
+        @Override
+        public NioSocketChannelConfig setSendBufferSize(int sendBufferSize) {
+            super.setSendBufferSize(sendBufferSize);
+            calculateMaxBytesPerGatheringWrite();
+            return this;
+        }
+
+        void setMaxBytesPerGatheringWrite(int maxBytesPerGatheringWrite) {
+            this.maxBytesPerGatheringWrite = maxBytesPerGatheringWrite;
+        }
+
+        int getMaxBytesPerGatheringWrite() {
+            return maxBytesPerGatheringWrite;
+        }
+
+        private void calculateMaxBytesPerGatheringWrite() {
+            int newSendBufferSize = getSendBufferSize() << 1;
+            if (newSendBufferSize > 0) {
+                setMaxBytesPerGatheringWrite(getSendBufferSize() << 1);
+            }
+        }
+
+        private SocketChannel jdkChannel() {
+            return ((NioSocketChannel) channel).javaChannel();
         }
     }
 

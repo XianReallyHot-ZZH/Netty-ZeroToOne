@@ -1,17 +1,22 @@
 package com.yy.netty.channel.socket.nio;
 
+import com.yy.netty.channel.ChannelOption;
 import com.yy.netty.channel.nio.AbstractNioMessageChannel;
 import com.yy.netty.channel.nio.NioEventLoop;
+import com.yy.netty.channel.socket.DefaultServerSocketChannelConfig;
+import com.yy.netty.channel.socket.ServerSocketChannelConfig;
 import com.yy.netty.util.internal.SocketUtils;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.ServerSocket;
 import java.net.SocketAddress;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.channels.spi.SelectorProvider;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 服务端channel的最终实现类
@@ -31,12 +36,22 @@ public class NioServerSocketChannel extends AbstractNioMessageChannel {
         }
     }
 
+    // 服务端channel的配置类
+    private final ServerSocketChannelConfig config;
+
     public NioServerSocketChannel() {
         this(newSocket(DEFAULT_SELECTOR_PROVIDER));
     }
 
     public NioServerSocketChannel(ServerSocketChannel channel) {
         super(null, channel, SelectionKey.OP_ACCEPT);
+        // 创建服务端channel的配置类
+        config = new NioServerSocketChannelConfig(this, javaChannel().socket());
+    }
+
+    @Override
+    public ServerSocketChannelConfig config() {
+        return config;
     }
 
     @Override
@@ -93,8 +108,9 @@ public class NioServerSocketChannel extends AbstractNioMessageChannel {
         //这里是一个系统调用方法，判断当前的java版本是否为7以上，这里我就直接写死了，不引入更多的工具类了
         //如果用户没有设置backlog参数，config.getBacklog()点进去看源码最后发现会该值会在NetUtil的静态代码块中被赋值，windows环境下值为200
         //linux环境下默认为128。Backlog可以设置全连接队列的大小，控制服务端接受连接的数量。
-        //这里就直接写死了，还没有引入channelconfig配置类
-        javaChannel().bind(localAddress, 128);
+        //现在，我们可以把这里换成用户配置的参数了
+        javaChannel().bind(localAddress, config.getBacklog());
+        System.out.println("服务端channel绑定端口，并设置backlog参数为：" + config.getBacklog());
         if (isActive()) {
             System.out.println("服务端绑定端口成功");
             // 注册“读”事件，开始接受客户端的连接
@@ -139,6 +155,71 @@ public class NioServerSocketChannel extends AbstractNioMessageChannel {
     protected void doFinishConnect() throws Exception {
         // 服务端不做处理
         throw new UnsupportedOperationException();
+    }
+
+    /**
+     * 引入该内部类，该内部类最终会把用户配置的channel参数真正传入jdk的channel中
+     */
+    private final class NioServerSocketChannelConfig extends DefaultServerSocketChannelConfig {
+
+        private NioServerSocketChannelConfig(NioServerSocketChannel channel, ServerSocket javaSocket) {
+            super(channel, javaSocket);
+        }
+
+        /**
+         * 重写setOption方法，支持服务端NIO原生channel配置项的设置
+         *
+         * @param option
+         * @param value
+         * @param <T>
+         * @return
+         */
+        @Override
+        public <T> boolean setOption(ChannelOption<T> option, T value) {
+            if (option instanceof NioChannelOption) {
+                //把用户设置的参数传入原生的jdk的channel中
+                return NioChannelOption.setOption(jdkChannel(), (NioChannelOption<T>) option, value);
+            }
+            //正常调用的话，该方法的逻辑会走到这个分支处
+            return super.setOption(option, value);
+        }
+
+        /**
+         * 重写getOption方法，支持服务端NIO原生channel配置项的获取
+         *
+         * @param option
+         * @param <T>
+         * @return
+         */
+        @Override
+        public <T> T getOption(ChannelOption<T> option) {
+            //这里有一行代码，判断jdk版本是否大于7，我就直接删掉了，默认大家用的都是7以上，否则要引入更多工具类
+            if (option instanceof NioChannelOption) {
+                return NioChannelOption.getOption(jdkChannel(), (NioChannelOption<T>) option);
+            }
+            return super.getOption(option);
+        }
+
+        /**
+         * 重写getOptions方法，支持服务端NIO原生channel配置项的获取
+         *
+         * @return
+         */
+        @SuppressWarnings("unchecked")
+        @Override
+        public Map<ChannelOption<?>, Object> getOptions() {
+            return getOptions(super.getOptions(), NioChannelOption.getOptions(jdkChannel()));
+        }
+
+        /**
+         * @Author: PP-jessica
+         * @Description: 这个方法得到的就是jdk的channel
+         */
+        private ServerSocketChannel jdkChannel() {
+            return ((NioServerSocketChannel) channel).javaChannel();
+        }
+
+
     }
 
 }

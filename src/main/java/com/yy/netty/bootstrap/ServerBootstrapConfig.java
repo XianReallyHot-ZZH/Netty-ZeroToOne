@@ -6,7 +6,7 @@ import com.yy.netty.util.internal.StringUtil;
 
 public class ServerBootstrapConfig extends AbstractBootstrapConfig<ServerBootstrap, Channel> {
 
-    protected ServerBootstrapConfig(ServerBootstrap bootstrap) {
+    ServerBootstrapConfig(ServerBootstrap bootstrap) {
         super(bootstrap);
     }
 

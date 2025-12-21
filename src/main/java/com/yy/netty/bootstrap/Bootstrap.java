@@ -1,36 +1,37 @@
 package com.yy.netty.bootstrap;
 
 import com.yy.netty.channel.*;
-import com.yy.netty.util.concurrent.EventExecutor;
 import com.yy.netty.util.internal.ObjectUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.util.Map;
 
 /**
  * @Description:客户端Socket网络搭建引导类，引导实现对SocketChannel的NIO事件处理,最终引导连接至某个ip：port，同时接受处理对服务端的IO读写
  */
-public class Bootstrap<C extends Channel> {
+public class Bootstrap extends AbstractBootstrap<Bootstrap, Channel> {
 
     private static final Logger logger = LoggerFactory.getLogger(Bootstrap.class);
 
-    private EventLoopGroup workerGroup;
+    private final BootstrapConfig config = new BootstrapConfig(this);
 
-    private volatile ChannelFactory<? extends Channel> channelFactory;
+    // 目标服务器地址
+    private volatile SocketAddress remoteAddress;
 
     public Bootstrap() {
 
     }
 
-    public Bootstrap group(EventLoopGroup workerGroup) {
-        this.workerGroup = workerGroup;
-        return this;
+    private Bootstrap(Bootstrap bootstrap) {
+        super(bootstrap);
+        remoteAddress = bootstrap.remoteAddress;
     }
 
-    public Bootstrap channel(Class<? extends C> channelClass) {
-        this.channelFactory = new ReflectiveChannelFactory<C>(channelClass);
+    public Bootstrap remoteAddress(SocketAddress remoteAddress) {
+        this.remoteAddress = remoteAddress;
         return this;
     }
 
@@ -50,9 +51,6 @@ public class Bootstrap<C extends Channel> {
     }
 
     private ChannelFuture doResolveAndConnect(final SocketAddress remoteAddress, final SocketAddress localAddress) {
-        //这里的逻辑和serverbootstarp一样，但是在这里又要写一遍该方法，现在是不是发现，如果bootstarp和serverbootstarp有一个
-        //抽象父类就好了，就可以在父类中定义模版方法了。实际上源码中确实有一个父类，这个方法被定义在父类中，但我们暂时还不引入
-        //都是先生成channel，然后进行注册，然后进行“绑定”（服务端channel是绑定，客户端channel是连接）
         final ChannelFuture regFuture = initAndRegister();
         //得到要注册的kehuduanchannel
         final Channel channel = regFuture.channel();
@@ -127,7 +125,7 @@ public class Bootstrap<C extends Channel> {
             public void run() {
                 if (localAddress == null) {
                     //这里会走这个，我们并没有传递localAddress的地址
-                    channel.connect(remoteAddress,null, connectPromise);
+                    channel.connect(remoteAddress, null, connectPromise);
                 }
                 //添加该监听器，如果channel连接失败，该监听器会关闭该channel
                 connectPromise.addListener(ChannelFutureListener.CLOSE_ON_FAILURE);
@@ -135,37 +133,24 @@ public class Bootstrap<C extends Channel> {
         });
     }
 
-    /**
-     * 创建具体的channel实例并注册channel
-     *
-     * @return
-     */
-    final ChannelFuture initAndRegister() {
-        Channel channel = null;
-        //在这里初始化服务端channel，反射创建对象调用的无参构造器，
-        //可以去NioSocketChannel类中看看无参构造器中做了什么
-        channel = channelFactory.newChannel();
-        //这里是异步注册的，一般来说，workerGroup设置的也是一个线程执行器。只有在服务端的workerGroup中，才会设置多个线程执行器
-        ChannelFuture regFuture = workerGroup.next().register(channel);
-        return regFuture;
-    }
-
-    static final class PendingRegistrationPromise extends DefaultChannelPromise {
-
-        private volatile boolean registered;
-
-        PendingRegistrationPromise(Channel channel) {
-            super(channel);
-        }
-
-        void registered() {
-            registered = true;
-        }
-
-        @Override
-        protected EventExecutor executor() {
-            return super.executor();
+    @Override
+    void init(Channel channel) throws Exception {
+        // 得到父类中存储的所有参数项及其值
+        final Map<ChannelOption<?>, Object> options = options0();
+        synchronized (options) {
+            // 把初始化时用户配置的参数全都放到channel的config类中
+            setChannelOptions(channel, options);
         }
     }
 
+    @Override
+    public Bootstrap validate() {
+        super.validate();
+        return this;
+    }
+
+    @Override
+    public final BootstrapConfig config() {
+        return config;
+    }
 }

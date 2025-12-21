@@ -214,7 +214,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
                 return new DefaultChannelPromise(channel, channel.eventLoop()).setFailure(t);
             }
         }
-        //在这里把channel注册到boss线程组的执行器上
+        //在这里把channel注册到‘主’线程组的执行器上， 服务端对应着boss线程组的执行器，客户端对应着worker线程组的执行器
         ChannelFuture regFuture = config().group().register(channel);
         if (regFuture.cause() != null) {
             //出现异常，但是注册成功了，则直接关闭channel，该方法还未实现，等后面，开发到优雅停机和释放资源时，会填充close方法

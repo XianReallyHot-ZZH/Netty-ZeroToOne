@@ -12,18 +12,10 @@
 * **目标**：增加Group工作组的概念，提升框架并发处理能力
 * **设计与实现**：在version-01版本的基础上抽象Group概念，以组的形式管理EventLoop，具体抽象层次如下所示：
 
-<div style="display: flex; justify-content: space-around; align-items: center;">
-  <div align="center">
-    <img src="./docs/img/version02/NioEventLoop.png" alt="NioEventLoop抽象层次" width="400"/>
-    <br/>
-    NioEventLoop抽象层次
-  </div>
-  <div align="center">
-    <img src="./docs/img/version02/NioEventLoopGroup.png" alt="NioEventLoopGroup抽象层次" width="400"/>
-    <br/>
-    NioEventLoopGroup抽象层次
-  </div>
-</div>
+| NioEventLoop抽象层次 | NioEventLoopGroup抽象层次 |
+|---|---|
+| ![NioEventLoop抽象层次](./docs/img/version02/NioEventLoop.png "NioEventLoop抽象层次") | ![NioEventLoopGroup抽象层次](./docs/img/version02/NioEventLoopGroup.png "NioEventLoopGroup抽象层次") |
+
 
 * **功能与效果**：
   * 服务端支持设置bossGroup和workGroup，以多线程组的方式分别处理服务端IO连接事件和IO读写事件；
@@ -37,18 +29,18 @@
   * 在java原生Future的基础上进行扩展，最终抽象出netty中的Promise接口，规范定义了用于在netty中的线程协作方法
   * 定义了FutureListener体系，并用于Promise中
 
-<div style="display: flex; justify-content: space-around; align-items: center;">
-  <div align="center">
-    <img src="./docs/img/version03/DefaultPromise.png" alt="DefaultPromise抽象层次" width="400"/>
-    <br/>
-    DefaultPromise抽象层次
-  </div>
-  <div align="center">
-    <img src="./docs/img/version03/FutureListener.png" alt="FutureListener监听器抽象层次" width="400"/>
-    <br/>
-    FutureListener监听器抽象层次
-  </div>
-</div>
+<table>
+  <tr>
+    <td align="center">
+      <img src="./docs/img/version03/DefaultPromise.png" alt="DefaultPromise抽象层次" width="350"/>
+      <br/>DefaultPromise抽象层次
+    </td>
+    <td align="center">
+      <img src="./docs/img/version03/FutureListener.png" alt="FutureListener监听器抽象层次" width="350"/>
+      <br/>FutureListener监听器抽象层次
+    </td>
+  </tr>
+</table>
 
 * **功能与效果**：promise的默认实现DefaultPromise支持如下线程协作方法
   * 任务结果设置：setSuccess、trySuccess、setFailure、tryFailure等方法
@@ -126,6 +118,58 @@ NioServerSocketChannel、NioSocketChannel、DefaultChannelFuture三个类各自�
   * 和NetworkChannel的SocketOption参数体系打交道，大致对应的就是NioServerSocketChannelConfig和NioSocketChannelConfig
   * 和Socket、ServerSocket的采用直接方法调用方式设置配置的体系打交道,大致对应的就是DefaultServerSocketChannelConfig和DefaultSocketChannelConfig
   * 最后是netty自己的channelConfig的参数管理和设置保存，大致对应的就是ChannelConfig
+
+<div style="display: flex; justify-content: space-around; align-items: center;">
+  <div align="center">
+    <img src="./docs/img/version07/NioChannelOption.png" alt="channel配置项体系" width="400"/>
+    <br/>
+    channel配置项体系
+  </div>
+  <div align="center">
+    <img src="./docs/img/version07/ConstantPool.png" alt="常量池继承关系" width="400"/>
+    <br/>
+    常量池继承关系
+  </div>
+</div>
+
+<div style="display: flex; justify-content: space-around; align-items: center;">
+  <div align="center">
+    <img src="./docs/img/version07/NioServerSocketChannelConfig.png" alt="服务端channel配置类继承关系" width="400"/>
+    <br/>
+    服务端channel配置类继承关系
+  </div>
+  <div align="center">
+    <img src="./docs/img/version07/NioSocketChannelConfig.png" alt="客户端channel配置类继承关系" width="400"/>
+    <br/>
+    客户端channel配置类继承关系
+  </div>
+</div>
+
+<div style="display: flex; justify-content: space-around; align-items: center;">
+  <div align="center">
+    <img src="./docs/img/version07/ServerBootstrap.png" alt="服务端引导类继承关系" width="400"/>
+    <br/>
+    服务端引导类继承关系
+  </div>
+  <div align="center">
+    <img src="./docs/img/version07/Bootstrap.png" alt="客户端引导类继承关系" width="400"/>
+    <br/>
+    客户端引导类继承关系
+  </div>
+  <div align="center">
+    <img src="./docs/img/version07/ServerBootstrapConfig.png" alt="服务端引导配置类继承关系" width="400"/>
+    <br/>
+    服务端引导配置类继承关系
+  </div>
+  <div align="center">
+    <img src="./docs/img/version07/BootstrapConfig.png" alt="客户端引导配置类继承关系" width="400"/>
+    <br/>
+    客户端引导配置类继承关系
+  </div>
+</div>
+
+
+
 * **功能与效果**：实现 Netty 引导类的 option 方法，为用户提供设置配置参数的入口，最终在流程上完成各个配置参数的生效设置。使用案例和效果请参考ServerTest和ClientTest两个测试类。
 
 

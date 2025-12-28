@@ -12,10 +12,18 @@
 * **目标**：增加Group工作组的概念，提升框架并发处理能力
 * **设计与实现**：在version-01版本的基础上抽象Group概念，以组的形式管理EventLoop，具体抽象层次如下所示：
 
-| NioEventLoop抽象层次 | NioEventLoopGroup抽象层次 |
-|---|---|
-| ![NioEventLoop抽象层次](./docs/img/version02/NioEventLoop.png "NioEventLoop抽象层次") | ![NioEventLoopGroup抽象层次](./docs/img/version02/NioEventLoopGroup.png "NioEventLoopGroup抽象层次") |
-
+<table>
+  <tr>
+    <td align="center">
+      <img src="./docs/img/version02/NioEventLoop.png" alt="NioEventLoop抽象层次" width="350"/>
+      <br/>NioEventLoop抽象层次
+    </td>
+    <td align="center">
+      <img src="./docs/img/version02/NioEventLoopGroup.png" alt="NioEventLoopGroup抽象层次" width="350"/>
+      <br/>NioEventLoopGroup抽象层次
+    </td>
+  </tr>
+</table>
 
 * **功能与效果**：
   * 服务端支持设置bossGroup和workGroup，以多线程组的方式分别处理服务端IO连接事件和IO读写事件；
@@ -52,132 +60,116 @@
 
 ## version-04
 * **目标**：重构channel体系，NioEventLoop借助Channel体系，将IO事件委托给相应具体的channel来处理，解耦掉依赖具体NIO的Channel类型的逻辑，实现解耦。
-结合第三版future协调器，扩展出channel的future体系。到这版完结为止，可正常完成服务端和客户端的连接了，服务端和客户端的数据传输安排到后面再去实现。
+  结合第三版future协调器，扩展出channel的future体系。到这版完结为止，可正常完成服务端和客户端的连接了，服务端和客户端的数据传输安排到后面再去实现。
 * **设计与实现**：完成对channel体系、channelFuture体系的抽象与重构，然后将NioEventLoop体系、Bootstrap、ServerBootstrap改造使用最新的channel体系。
-channel体系有两个顶层实现类，分别对应服务端的NioServerSocketChannel和客户端的NioSocketChannel。channelFuture的默认实现类为DefaultChannelPromise。
-NioServerSocketChannel、NioSocketChannel、DefaultChannelFuture三个类各自的抽象设计层次如下：
+  channel体系有两个顶层实现类，分别对应服务端的NioServerSocketChannel和客户端的NioSocketChannel。channelFuture的默认实现类为DefaultChannelPromise。
+  NioServerSocketChannel、NioSocketChannel、DefaultChannelFuture三个类各自的抽象设计层次如下：
 
-<div style="display: flex; justify-content: space-around; align-items: center;">
-  <div align="center">
-    <img src="./docs/img/version04/NioServerSocketChannel.png" alt="NioServerSocketChannel抽象层次" width="400"/>
-    <br/>
-    NioServerSocketChannel抽象层次
-  </div>
-  <div align="center">
-    <img src="./docs/img/version04/NioSocketChannel.png" alt="NioSocketChannel抽象层次" width="400"/>
-    <br/>
-    NioSocketChannel抽象层次
-  </div>
-  <div align="center">
-    <img src="./docs/img/version04/DefaultChannelPromise.png" alt="DefaultChannelPromise抽象层次" width="400"/>
-    <br/>
-    DefaultChannelPromise抽象层次
-  </div>
-</div>
+<table>
+  <tr>
+    <td align="center">
+      <img src="./docs/img/version04/NioServerSocketChannel.png" alt="NioServerSocketChannel抽象层次" width="300"/>
+      <br/>NioServerSocketChannel抽象层次
+    </td>
+    <td align="center">
+      <img src="./docs/img/version04/NioSocketChannel.png" alt="NioSocketChannel抽象层次" width="300"/>
+      <br/>NioSocketChannel抽象层次
+    </td>
+    <td align="center">
+      <img src="./docs/img/version04/DefaultChannelPromise.png" alt="DefaultChannelPromise抽象层次" width="300"/>
+      <br/>DefaultChannelPromise抽象层次
+    </td>
+  </tr>
+</table>
 
 * **功能与效果**：本迭代版本功能较第三版本没有太大区别，没有新增的功能，主要是对channel体系的重构，在整体架构上进行调整优化，为后续版本铺垫。使用案例和效果请参考ServerTest和ClientTest两个测试类。
 
 ## version-05
 * **目标**：在channel体系中引入Unsafe设计模式，搞清楚Netty中Unsafe接口和其实现类的设计理念。明白设计这样一个东西只是为了让channel中的方法执行的时候经过后续待设计出来的ChannelPipeline。
-进而在ChannelPipeline中会进一步调用Unsafe的方法。在本版本中channel的很多方法实现都会移动到Unsafe接口实现类中，但是channel中又会保留部分方法，channel中这部分保留的本来的方法实现待后续结合ChannelPipeline体系进行完善。
+  进而在ChannelPipeline中会进一步调用Unsafe的方法。在本版本中channel的很多方法实现都会移动到Unsafe接口实现类中，但是channel中又会保留部分方法，channel中这部分保留的本来的方法实现待后续结合ChannelPipeline体系进行完善。
 * **设计与实现**：Unsafe的继承体系伴随着channel体系进行抽象和实现，具体抽象关系如下：
 
-<div style="display: flex; justify-content: space-around; align-items: center;">
-  <div align="center">
-    <img src="./docs/img/version05/Unsafe体系与Channel体系的依附关系.png" alt="Unsafe体系与Channel体系的依附关系" width="400"/>
-    <br/>
-    Unsafe体系与Channel体系的依附关系
-  </div>
-  <div align="center">
-    <img src="./docs/img/version05/NioMessageUnsafe.png" alt="NioMessageUnsafe抽象层次" width="400"/>
-    <br/>
-    NioMessageUnsafe抽象层次
-  </div>
-  <div align="center">
-    <img src="./docs/img/version05/NioByteUnsafe.png" alt="NioByteUnsafe抽象层次" width="400"/>
-    <br/>
-    NioByteUnsafe抽象层次
-  </div>
-</div>
+<table>
+  <tr>
+    <td align="center">
+      <img src="./docs/img/version05/Unsafe体系与Channel体系的依附关系.png" alt="Unsafe体系与Channel体系的依附关系" width="300"/>
+      <br/>Unsafe体系与Channel体系的依附关系
+    </td>
+    <td align="center">
+      <img src="./docs/img/version05/NioMessageUnsafe.png" alt="NioMessageUnsafe抽象层次" width="300"/>
+      <br/>NioMessageUnsafe抽象层次
+    </td>
+    <td align="center">
+      <img src="./docs/img/version05/NioByteUnsafe.png" alt="NioByteUnsafe抽象层次" width="300"/>
+      <br/>NioByteUnsafe抽象层次
+    </td>
+  </tr>
+</table>
 
 * **功能与效果**：在Netty中，bind、read、connect、writeAndFlush等多种方法都会经过ChannelPipeline，然后在ChannelPipeline的处理器中调用unsafe对象的方法，
-在unsafe对象的方法内，就可以进一步执行到各种channel实现类中以do开头的各种真正干活的方法中了。直接使用unsafe的方法被认为是'不安全'的。
+  在unsafe对象的方法内，就可以进一步执行到各种channel实现类中以do开头的各种真正干活的方法中了。直接使用unsafe的方法被认为是'不安全'的。
 
 
 ## version-06
 * **目标**：在版本5的基础上增加客户端的write数据发送能力，服务端接受到客户端channel后的绑定和读数据接收能力待后续进一步完善。
 * **设计与实现**：实现ChannelOutboundInvoker接口的writeAndFlush方法，实现Unsafe的write方法，在NioSocketChannel中具体实现doWrite方法。
-实现unsafe的finishConnect方法，在NioSocketChannel和NioServerSocketChannel分别实现finishConnect的具体逻辑。
+  实现unsafe的finishConnect方法，在NioSocketChannel和NioServerSocketChannel分别实现finishConnect的具体逻辑。
 * **功能与效果**：客户端端连接至服务端后，发送数据到服务端，证明客户端的write能力正常。
 
 
 ## version-07
 * **目标**：本版本将完成 Netty 的 channelConfig 配置参数体系的搭建。通过抽象出 Constant 常量体系、ConstantPool 常量池、ChannelOption 配置项体系，
-并重构 ServerBootstrap 和 Bootstrap 以支持配置项引导，从而综合实现服务端和客户端的配置参数体系。
+  并重构 ServerBootstrap 和 Bootstrap 以支持配置项引导，从而综合实现服务端和客户端的配置参数体系。
 * **设计与实现**：分别对 Constant 常量体系、ChannelOption 配置项体系以及 channelConfig 配置参数体系进行抽象与实现，其中配置参数体系会稍微复杂一点，因为涉及和原生JDK的NIO源码打交道，其大致是这么个关系：
   * 和NetworkChannel的SocketOption参数体系打交道，大致对应的就是NioServerSocketChannelConfig和NioSocketChannelConfig
   * 和Socket、ServerSocket的采用直接方法调用方式设置配置的体系打交道,大致对应的就是DefaultServerSocketChannelConfig和DefaultSocketChannelConfig
   * 最后是netty自己的channelConfig的参数管理和设置保存，大致对应的就是ChannelConfig
 
-<div style="display: flex; justify-content: space-around; align-items: center;">
-  <div align="center">
-    <img src="./docs/img/version07/NioChannelOption.png" alt="channel配置项体系" width="400"/>
-    <br/>
-    channel配置项体系
-  </div>
-  <div align="center">
-    <img src="./docs/img/version07/ConstantPool.png" alt="常量池继承关系" width="400"/>
-    <br/>
-    常量池继承关系
-  </div>
-</div>
+<table>
+  <tr>
+    <td align="center">
+      <img src="./docs/img/version07/NioChannelOption.png" alt="channel配置项体系" width="250"/>
+      <br/>channel配置项体系
+    </td>
+    <td align="center">
+      <img src="./docs/img/version07/ConstantPool.png" alt="常量池继承关系" width="250"/>
+      <br/>常量池继承关系
+    </td>
+  </tr>
+</table>
 
-<div style="display: flex; justify-content: space-around; align-items: center;">
-  <div align="center">
-    <img src="./docs/img/version07/NioServerSocketChannelConfig.png" alt="服务端channel配置类继承关系" width="400"/>
-    <br/>
-    服务端channel配置类继承关系
-  </div>
-  <div align="center">
-    <img src="./docs/img/version07/NioSocketChannelConfig.png" alt="客户端channel配置类继承关系" width="400"/>
-    <br/>
-    客户端channel配置类继承关系
-  </div>
-</div>
+<table>
+  <tr>
+    <td align="center">
+      <img src="./docs/img/version07/NioServerSocketChannelConfig.png" alt="服务端channel配置类继承关系" width="350"/>
+      <br/>服务端channel配置类继承关系
+    </td>
+    <td align="center">
+      <img src="./docs/img/version07/NioSocketChannelConfig.png" alt="客户端channel配置类继承关系" width="350"/>
+      <br/>客户端channel配置类继承关系
+    </td>
+  </tr>
+</table>
 
-<div style="display: flex; justify-content: space-around; align-items: center;">
-  <div align="center">
-    <img src="./docs/img/version07/ServerBootstrap.png" alt="服务端引导类继承关系" width="400"/>
-    <br/>
-    服务端引导类继承关系
-  </div>
-  <div align="center">
-    <img src="./docs/img/version07/Bootstrap.png" alt="客户端引导类继承关系" width="400"/>
-    <br/>
-    客户端引导类继承关系
-  </div>
-  <div align="center">
-    <img src="./docs/img/version07/ServerBootstrapConfig.png" alt="服务端引导配置类继承关系" width="400"/>
-    <br/>
-    服务端引导配置类继承关系
-  </div>
-  <div align="center">
-    <img src="./docs/img/version07/BootstrapConfig.png" alt="客户端引导配置类继承关系" width="400"/>
-    <br/>
-    客户端引导配置类继承关系
-  </div>
-</div>
-
-
+<table>
+  <tr>
+    <td align="center">
+      <img src="./docs/img/version07/ServerBootstrap.png" alt="服务端引导类继承关系" width="280"/>
+      <br/>服务端引导类继承关系
+    </td>
+    <td align="center">
+      <img src="./docs/img/version07/Bootstrap.png" alt="客户端引导类继承关系" width="280"/>
+      <br/>客户端引导类继承关系
+    </td>
+    <td align="center">
+      <img src="./docs/img/version07/ServerBootstrapConfig.png" alt="服务端引导配置类继承关系" width="280"/>
+      <br/>服务端引导配置类继承关系
+    </td>
+    <td align="center">
+      <img src="./docs/img/version07/BootstrapConfig.png" alt="客户端引导配置类继承关系" width="280"/>
+      <br/>客户端引导配置类继承关系
+    </td>
+  </tr>
+</table>
 
 * **功能与效果**：实现 Netty 引导类的 option 方法，为用户提供设置配置参数的入口，最终在流程上完成各个配置参数的生效设置。使用案例和效果请参考ServerTest和ClientTest两个测试类。
-
-
-
-
-
-
-
-
-
-

@@ -13,7 +13,7 @@ public class ClientTest {
 
     public static void main(String[] args) throws IOException, InterruptedException {
         // 创建客户端Bootstrap引导类
-        Bootstrap<NioSocketChannel> bootstrap = new Bootstrap<>();
+        Bootstrap bootstrap = new Bootstrap();
         // 为客户端设置工作组
         NioEventLoopGroup workerGroup = new NioEventLoopGroup(1);
         // 给引导类设置工作组

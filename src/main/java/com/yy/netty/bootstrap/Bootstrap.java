@@ -153,4 +153,8 @@ public class Bootstrap extends AbstractBootstrap<Bootstrap, Channel> {
     public final BootstrapConfig config() {
         return config;
     }
+
+    final SocketAddress remoteAddress() {
+        return remoteAddress;
+    }
 }

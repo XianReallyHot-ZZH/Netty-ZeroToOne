@@ -3,6 +3,7 @@ package com.yy.netty.bootstrap;
 import com.yy.netty.channel.Channel;
 import com.yy.netty.channel.ChannelOption;
 import com.yy.netty.channel.EventLoopGroup;
+import com.yy.netty.util.AttributeKey;
 import com.yy.netty.util.internal.ObjectUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,8 +21,11 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, Channel>
     // 服务端 work事件循环组, 负责处理IO read/write事件（读写事件）
     private EventLoopGroup childGroup;
 
-    // 服务端 child事件循环组, 负责处理IO read/write事件（读写事件）
+    // 服务端 child事件循环组, 负责处理IO read/write事件（读写事件），child的用户配置项
     private final Map<ChannelOption<?>, Object> childOptions = new LinkedHashMap<ChannelOption<?>, Object>();
+
+    // 服务端 child事件循环组, 负责处理IO read/write事件（读写事件），child的用户共享参数
+    private final Map<AttributeKey<?>, Object> childAttrs = new LinkedHashMap<AttributeKey<?>, Object>();
 
     private final ServerBootstrapConfig config = new ServerBootstrapConfig(this);
 
@@ -35,6 +39,9 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, Channel>
         childGroup = bootstrap.childGroup;
         synchronized (bootstrap.childOptions) {
             childOptions.putAll(bootstrap.childOptions);
+        }
+        synchronized (bootstrap.childAttrs) {
+            childAttrs.putAll(bootstrap.childAttrs);
         }
     }
 
@@ -89,6 +96,24 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, Channel>
     }
 
     /**
+     * 添加childGroup的共享参数
+     *
+     * @param childKey
+     * @param value
+     * @param <T>
+     * @return
+     */
+    public <T> ServerBootstrap childAttr(AttributeKey<T> childKey, T value) {
+        ObjectUtil.checkNotNull(childKey, "childKey");
+        if (value == null) {
+            childAttrs.remove(childKey);
+        } else {
+            childAttrs.put(childKey, value);
+        }
+        return this;
+    }
+
+    /**
      * 初始化channel
      * 主要是增加服务端channel的参数的设置逻辑
      *
@@ -102,6 +127,14 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, Channel>
         synchronized (options) {
             // 把初始化时用户配置的参数全都放到channel的config类中
             setChannelOptions(channel, options);
+        }
+        // 得到服务端channel的共享参数
+        final Map<AttributeKey<?>, Object> attrs = attrs0();
+        synchronized (attrs) {
+            for (Map.Entry<AttributeKey<?>, Object> e: attrs.entrySet()) {
+                // 把服务端channel的共享参数设置到channel中
+                channel.attr((AttributeKey<Object>) e.getKey()).set(e.getValue());
+            }
         }
     }
 

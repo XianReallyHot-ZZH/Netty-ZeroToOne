@@ -1,6 +1,7 @@
 package com.yy.netty.bootstrap;
 
 import com.yy.netty.channel.*;
+import com.yy.netty.util.AttributeKey;
 import com.yy.netty.util.internal.ObjectUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -140,6 +141,14 @@ public class Bootstrap extends AbstractBootstrap<Bootstrap, Channel> {
         synchronized (options) {
             // 把初始化时用户配置的参数全都放到channel的config类中
             setChannelOptions(channel, options);
+        }
+
+        final Map<AttributeKey<?>, Object> attrs = attrs0();
+        synchronized (attrs) {
+            for (Map.Entry<AttributeKey<?>, Object> e: attrs.entrySet()) {
+                // 把初始化时用户配置的参数全都放到channel的attr类中
+                channel.attr((AttributeKey<Object>) e.getKey()).set(e.getValue());
+            }
         }
     }
 

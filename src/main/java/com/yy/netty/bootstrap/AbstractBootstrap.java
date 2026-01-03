@@ -1,6 +1,7 @@
 package com.yy.netty.bootstrap;
 
 import com.yy.netty.channel.*;
+import com.yy.netty.util.AttributeKey;
 import com.yy.netty.util.concurrent.EventExecutor;
 import com.yy.netty.util.internal.ObjectUtil;
 import com.yy.netty.util.internal.SocketUtils;
@@ -38,6 +39,14 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
      */
     private final Map<ChannelOption<?>, Object> options = new LinkedHashMap<ChannelOption<?>, Object>();
 
+    /**
+     * 引导类存储用户设置的共享参数
+     * 1、用户设置的共享参数会暂时存放在这个map中，channel初始化时，这里面的数据才会存放到channel的配置类中
+     * 2、当然，当你创建的是NioSocketChannel的时候，这里存储的就是与NioSocketChannel有关的共享参数
+     * channel本身就继承了DefaultAttributeMap，这里的attrs最终会在channel初始化时，被设置到channel中
+     */
+    private final Map<AttributeKey<?>, Object> attrs = new LinkedHashMap<AttributeKey<?>, Object>();
+
     AbstractBootstrap() {
 
     }
@@ -48,6 +57,9 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
         localAddress = bootstrap.localAddress;
         synchronized (bootstrap.options) {
             options.putAll(bootstrap.options);
+        }
+        synchronized (bootstrap.attrs) {
+            attrs.putAll(bootstrap.attrs);
         }
     }
 
@@ -143,6 +155,28 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
     }
 
     /**
+     * 添加共享参数，这里面存放的是用户设置的共享参数，这些参数会临时存放在引导类的attrs中，等channel初始化的时候，会读取引导类中存储的attr参数然后存放到channel的AttributeMap中
+     *
+     * @param key
+     * @param value
+     * @param <T>
+     * @return
+     */
+    public <T> B attr(AttributeKey<T> key, T value) {
+        ObjectUtil.checkNotNull(key, "key");
+        if (value == null) {
+            synchronized (attrs) {
+                attrs.remove(key);
+            }
+        } else {
+            synchronized (attrs) {
+                attrs.put(key, value);
+            }
+        }
+        return self();
+    }
+
+    /**
      * 验证引导类参数
      * 1、检查group是否设置
      * 2、检查channelFactory是否设置
@@ -176,6 +210,11 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
     // 获取options
     final Map<ChannelOption<?>, Object> options0() {
         return options;
+    }
+
+    // 获取attrs
+    final Map<AttributeKey<?>, Object> attrs0() {
+        return attrs;
     }
 
     // 获取localAddress

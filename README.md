@@ -179,5 +179,23 @@
 * **目标**：本版本将完成 Netty 的 AttributeMap 属性共享参数体系的搭建。通过抽象AttributeMap接口并做默认实现，然后channel通过继承AttributeMap来获取容器的能力， 
   最终重构 ServerBootstrap 和 Bootstrap 以支持共享属性的引导，从而综合实现服务端和客户端的共享属性参数体系。
 * **设计与实现**：比较关键的设计我觉得其实就是共享参数key和value的设计与实现 -> AttributeKey和Attribute，然后是模拟java并发ConcurrentMap，但是性能更好的DefaultAttributeMap实现是这一版本的最核心的东西了。
+
+<table style="margin: 0 auto;">
+  <tr>
+    <td align="center">
+      <img src="./docs/img/version08/AttributeKey.png" alt="AttributeKey依赖关系" width="300"/>
+      <br/>AttributeKey依赖关系
+    </td>
+    <td align="center">
+      <img src="./docs/img/version08/NioServerSocketChannel.png" alt="NioServerSocketChannel抽象层次" width="300"/>
+      <br/>NioServerSocketChannel抽象层次
+    </td>
+    <td align="center">
+      <img src="./docs/img/version08/NioSocketChannel.png" alt="NioSocketChannel抽象层次" width="300"/>
+      <br/>NioSocketChannel抽象层次
+    </td>
+  </tr>
+</table>
+
 * **功能与效果**：实现 Netty 引导类的 attr 方法，为用户提供设置共享属性参数的入口，最终在流程上完成共享属性参数的生效设置。使用案例和效果请参考ServerTest和ClientTest两个测试类。
 

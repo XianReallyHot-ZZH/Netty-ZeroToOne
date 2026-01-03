@@ -6,12 +6,15 @@ import com.yy.netty.channel.ChannelFuture;
 import com.yy.netty.channel.ChannelOption;
 import com.yy.netty.channel.nio.NioEventLoopGroup;
 import com.yy.netty.channel.socket.nio.NioServerSocketChannel;
+import com.yy.netty.util.AttributeKey;
 import com.yy.netty.util.concurrent.Future;
 import com.yy.netty.util.concurrent.GenericFutureListener;
 
 import java.io.IOException;
 
 public class ServerTest {
+
+    public static AttributeKey<Integer> INDEX_KEY = AttributeKey.valueOf("常量");
 
     public static void main(String[] args) throws IOException, InterruptedException {
         // 创建服务端启动类
@@ -30,7 +33,10 @@ public class ServerTest {
                 //是这个错误：java.net.SocketException: Connection reset by peer，
                 //服务器接受的客户端连接超过了其设定最大值，就会关闭一些已经已经接受成功的连接
                 //这里参数不能设置为0，在源码中会对option()的value进行判断：backlog < 1 ? 50 : backlog，传入的参数小于1就会使用默认配置50
-                .option(ChannelOption.SO_BACKLOG, 1)
+                .option(ChannelOption.SO_BACKLOG, 2)
+                //测试attribute功能
+                .attr(INDEX_KEY, 10)
+                .childAttr(INDEX_KEY, 20)
                 .bind(8080)
                 .addListener(new GenericFutureListener<Future<? super Object>>() {
                     @Override

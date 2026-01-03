@@ -5,11 +5,14 @@ import com.yy.netty.channel.Channel;
 import com.yy.netty.channel.ChannelFuture;
 import com.yy.netty.channel.nio.NioEventLoopGroup;
 import com.yy.netty.channel.socket.nio.NioSocketChannel;
+import com.yy.netty.util.AttributeKey;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
 public class ClientTest {
+
+    public static AttributeKey<Integer> INDEX_KEY = AttributeKey.valueOf("客户端常量");
 
     public static void main(String[] args) throws IOException, InterruptedException {
         // 创建客户端Bootstrap引导类
@@ -20,6 +23,7 @@ public class ClientTest {
         ChannelFuture future = bootstrap
                 .group(workerGroup)
                 .channel(NioSocketChannel.class)
+                .attr(INDEX_KEY, 88)
                 // 连接至某个服务器，完成启动
                 .connect("127.0.0.1", 8080);
         future.sync();

@@ -5,6 +5,8 @@ import com.yy.netty.channel.nio.AbstractNioMessageChannel;
 import com.yy.netty.channel.nio.NioEventLoop;
 import com.yy.netty.channel.socket.DefaultServerSocketChannelConfig;
 import com.yy.netty.channel.socket.ServerSocketChannelConfig;
+import com.yy.netty.test.ServerTest;
+import com.yy.netty.util.AttributeKey;
 import com.yy.netty.util.internal.SocketUtils;
 
 import java.io.IOException;
@@ -110,7 +112,9 @@ public class NioServerSocketChannel extends AbstractNioMessageChannel {
         //linux环境下默认为128。Backlog可以设置全连接队列的大小，控制服务端接受连接的数量。
         //现在，我们可以把这里换成用户配置的参数了
         javaChannel().bind(localAddress, config.getBacklog());
+        // 临时测试代码
         System.out.println("服务端channel绑定端口，并设置backlog参数为：" + config.getBacklog());
+        System.out.println("服务端channel绑定端口，并设置共享参数为：" + this.attr(ServerTest.INDEX_KEY).key().name() + "：" + this.attr(ServerTest.INDEX_KEY).get());
         if (isActive()) {
             System.out.println("服务端绑定端口成功");
             // 注册“读”事件，开始接受客户端的连接

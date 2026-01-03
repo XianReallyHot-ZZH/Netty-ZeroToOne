@@ -1,5 +1,7 @@
 package com.yy.netty.channel;
 
+import com.yy.netty.util.AttributeMap;
+
 import java.net.SocketAddress;
 
 /**
@@ -17,7 +19,7 @@ import java.net.SocketAddress;
  * 具体为serverSocketChannel只需要注册和响应OP_ACCEPT，客户端socketChannel直接注册和响应OP_READ即可
  * </p>
  */
-public interface Channel extends ChannelOutboundInvoker {
+public interface Channel extends AttributeMap, ChannelOutboundInvoker {
 
     ChannelId id();
 

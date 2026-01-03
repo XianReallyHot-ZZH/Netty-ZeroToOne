@@ -1,12 +1,14 @@
 package com.yy.netty.channel;
 
+import com.yy.netty.util.DefaultAttributeMap;
+
 import java.net.SocketAddress;
 import java.nio.channels.ClosedChannelException;
 
 /**
  * channel的第一层抽象类，会实现一些channel这个层级下通用的方法、持有一些通用的成员变量
  */
-public abstract class AbstractChannel implements Channel {
+public abstract class AbstractChannel extends DefaultAttributeMap implements Channel {
 
     /**
      * 父channel

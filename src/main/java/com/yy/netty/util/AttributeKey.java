@@ -22,8 +22,8 @@ public final class AttributeKey<T> extends AbstractConstant<AttributeKey<T>> {
      * 创建一个AttributeKey对象,如果该name已经存在，那么会抛出异常
      *
      * @param name
-     * @return
      * @param <T>
+     * @return
      */
     public static <T> AttributeKey<T> newInstance(String name) {
         return (AttributeKey<T>) pool.newInstance(name);
@@ -33,8 +33,8 @@ public final class AttributeKey<T> extends AbstractConstant<AttributeKey<T>> {
      * 根据名称从常量池中获取对应的AttributeKey对象,没有的话就创建
      *
      * @param name
-     * @return
      * @param <T>
+     * @return
      */
     public static <T> AttributeKey<T> valueOf(String name) {
         return (AttributeKey<T>) pool.valueOf(name);

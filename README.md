@@ -174,3 +174,10 @@
 </table>
 
 * **功能与效果**：实现 Netty 引导类的 option 方法，为用户提供设置配置参数的入口，最终在流程上完成各个配置参数的生效设置。使用案例和效果请参考ServerTest和ClientTest两个测试类。
+
+## version-08
+* **目标**：本版本将完成 Netty 的 AttributeMap 属性共享参数体系的搭建。通过抽象AttributeMap接口并做默认实现，然后channel通过继承AttributeMap来获取容器的能力， 
+  最终重构 ServerBootstrap 和 Bootstrap 以支持共享属性的引导，从而综合实现服务端和客户端的共享属性参数体系。
+* **设计与实现**：比较关键的设计我觉得其实就是共享参数key和value的设计与实现 -> AttributeKey和Attribute，然后是模拟java并发ConcurrentMap，但是性能更好的DefaultAttributeMap实现是这一版本的最核心的东西了。
+* **功能与效果**：实现 Netty 引导类的 attr 方法，为用户提供设置共享属性参数的入口，最终在流程上完成共享属性参数的生效设置。使用案例和效果请参考ServerTest和ClientTest两个测试类。
+

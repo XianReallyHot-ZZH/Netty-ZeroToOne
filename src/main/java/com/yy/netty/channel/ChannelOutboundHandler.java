@@ -3,7 +3,7 @@ package com.yy.netty.channel;
 import java.net.SocketAddress;
 
 /*
- * 出站处理器接口，可以理解为是对channel的各种主动操作。用户可以继承这个接口，然后实现各种方法，完成对channel具体操作的实现。是一种扩产设计。
+ * 出站处理器的最基本接口，可以理解为是对channel的各种主动操作。用户可以继承这个接口，然后实现各种方法，完成对channel具体操作的实现。是一种扩产设计。
  * 每一个ChannelHandler最终都会存储在各自的ChannelHandlerContext链路节点中，
  * 最终是在pipeline上通过链路的方式调用起每一个ChannelHandlerContext节点，进而调用起节点内置的ChannelHandler，完成channel各种响应的调用处理。
  */

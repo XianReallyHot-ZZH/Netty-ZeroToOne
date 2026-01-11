@@ -4,8 +4,8 @@ import java.net.SocketAddress;
 
 /**
  * <p>
- * 这个接口定义了channel出站时候的方法,这些方法往往需要配合后续的channelHandler体系。
- * 这里面会有很多疑问，比如为什么是这些方法？为什么有些方法的返回值是这样的？待后续channelHandler体系补充上来了一起解释，先默认有这些方法
+ * 含义同ChannelInboundInvoker，只不过这里处理的都是channel的出站事件。
+ * 什么是出站事件呢？可以理解为是主动操作channel进行某种实现，比如：write，flush，bind，connect等等，是对channel的主动操作
  * </p>
  * <p>
  * 在netty中，很多接口定义了一些同名方法，这只是为了让某个类可以调用，但真正干活的是另一个类中的同名方法。

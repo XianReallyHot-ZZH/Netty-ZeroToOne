@@ -7,8 +7,34 @@ package com.yy.netty.channel;
  */
 public interface ChannelInboundHandler extends ChannelHandler {
 
+    // 处理从channel中读取到的信息
     void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception;
 
+    // 处理channel信息读取完毕，响应逻辑
     void channelReadComplete(ChannelHandlerContext ctx) throws Exception;
+
+    // 处理Channel上的用户事件
+    void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception;
+
+    // 响应channel注册成功
+    void channelRegistered(ChannelHandlerContext ctx) throws Exception;
+
+    // 响应channel取消注册
+    void channelUnregistered(ChannelHandlerContext ctx) throws Exception;
+
+    // 响应channel已激活
+    void channelActive(ChannelHandlerContext ctx) throws Exception;
+
+    // 响应channel已取消激活
+    void channelInactive(ChannelHandlerContext ctx) throws Exception;
+
+    // 响应channel可写状态改变
+    void channelWritabilityChanged(ChannelHandlerContext ctx) throws Exception;
+
+
+    @Override
+    @SuppressWarnings("deprecation")
+    void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception;
+
 
 }

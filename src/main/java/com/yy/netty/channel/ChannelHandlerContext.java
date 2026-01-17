@@ -39,6 +39,27 @@ public interface ChannelHandlerContext extends AttributeMap, ChannelInboundInvok
     @Override
     ChannelHandlerContext fireChannelReadComplete();
 
+    @Override
+    ChannelHandlerContext fireChannelWritabilityChanged();
+
+    @Override
+    ChannelHandlerContext fireChannelRegistered();
+
+    @Override
+    ChannelHandlerContext fireChannelUnregistered();
+
+    @Override
+    ChannelHandlerContext fireChannelActive();
+
+    @Override
+    ChannelHandlerContext fireChannelInactive();
+
+    @Override
+    ChannelHandlerContext fireExceptionCaught(Throwable cause);
+
+    @Override
+    ChannelHandlerContext fireUserEventTriggered(Object event);
+
     // -------------------------------------- 出站方法 重写返回值 --------------------------------------
     @Override
     ChannelHandlerContext read();

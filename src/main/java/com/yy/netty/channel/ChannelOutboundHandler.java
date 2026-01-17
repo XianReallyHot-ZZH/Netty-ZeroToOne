@@ -9,6 +9,8 @@ import java.net.SocketAddress;
  */
 public interface ChannelOutboundHandler extends ChannelHandler {
 
+    void read(ChannelHandlerContext ctx) throws Exception;
+
     // 绑定本channel到本地服务端口(只有服务端的channel才会实现该方法)
     void bind(ChannelHandlerContext ctx, SocketAddress localAddress, ChannelPromise promise) throws Exception;
 
@@ -18,4 +20,15 @@ public interface ChannelOutboundHandler extends ChannelHandler {
     // 将信息从本channel的写缓存区写入到channel中，进而发送给对端
     void flush(ChannelHandlerContext ctx) throws Exception;
 
+    // 将本channel连接到指定节点
+    void connect(ChannelHandlerContext ctx, SocketAddress remoteAddress, SocketAddress localAddress, ChannelPromise promise) throws Exception;
+
+    // 断开本channel与对端的连接
+    void disconnect(ChannelHandlerContext ctx, ChannelPromise promise) throws Exception;
+
+    // 关闭本channel
+    void close(ChannelHandlerContext ctx, ChannelPromise promise) throws Exception;
+
+    // 反注册本channel
+    void deregister(ChannelHandlerContext ctx, ChannelPromise promise) throws Exception;
 }

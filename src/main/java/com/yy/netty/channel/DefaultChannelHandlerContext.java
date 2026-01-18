@@ -5,7 +5,7 @@ import com.yy.netty.util.concurrent.EventExecutor;
 /**
  * 默认的ChannelHandlerContext, 以组合的方式，内部持有一个ChannelHandler
  */
-public class DefaultChannelHandlerContext extends AbstractChannelHandlerContext {
+final class DefaultChannelHandlerContext extends AbstractChannelHandlerContext {
 
     // 内部持有一个ChannelHandler，组合的方式
     private final ChannelHandler handler;

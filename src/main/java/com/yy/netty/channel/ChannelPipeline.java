@@ -1,5 +1,8 @@
 package com.yy.netty.channel;
 
+import com.yy.netty.util.concurrent.EventExecutorGroup;
+
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -21,14 +24,76 @@ public interface ChannelPipeline extends ChannelInboundInvoker, ChannelOutboundI
     // 该ChannelPipeline对应的 channel，一对一的关系
     Channel channel();
 
+    // 获取该ChannelPipeline中所有的ChannelHandler的名称
+    List<String> names();
+
+    // 获取该ChannelPipeline中所有的ChannelHandler及其name
+    Map<String, ChannelHandler> toMap();
+
     // ----------------------------------- 链表的维护与查询 -----------------------------------
-    // 添加ChannelHandler至链表的头部
+    // 添加ChannelHandler至链表的头部, name 为该ChannelHandler的name, handler 为该ChannelHandler
     ChannelPipeline addFirst(String name, ChannelHandler handler);
+
+    ChannelPipeline addFirst(EventExecutorGroup group, String name, ChannelHandler handler);
 
     // 添加ChannelHandler至链表的尾部
     ChannelPipeline addLast(String name, ChannelHandler handler);
 
+    ChannelPipeline addLast(EventExecutorGroup group, String name, ChannelHandler handler);
 
+    // 添加ChannelHandler至链表的baseName节点前
+    ChannelPipeline addBefore(String baseName, String name, ChannelHandler handler);
+
+    ChannelPipeline addBefore(EventExecutorGroup group, String baseName, String name, ChannelHandler handler);
+
+    // 添加ChannelHandler至链表的baseName节点后
+    ChannelPipeline addAfter(String baseName, String name, ChannelHandler handler);
+
+    ChannelPipeline addAfter(EventExecutorGroup group, String baseName, String name, ChannelHandler handler);
+
+    // 批次添加ChannelHandler至链表头部
+    ChannelPipeline addFirst(ChannelHandler... handlers);
+
+    ChannelPipeline addFirst(EventExecutorGroup group, ChannelHandler... handlers);
+
+    // 批次添加ChannelHandler至链表尾部
+    ChannelPipeline addLast(ChannelHandler... handlers);
+
+    ChannelPipeline addLast(EventExecutorGroup group, ChannelHandler... handlers);
+
+    ChannelPipeline remove(ChannelHandler handler);
+
+    ChannelHandler remove(String name);
+
+    <T extends ChannelHandler> T remove(Class<T> handlerType);
+
+    ChannelHandler removeFirst();
+
+    ChannelHandler removeLast();
+
+    ChannelPipeline replace(ChannelHandler oldHandler, String newName, ChannelHandler newHandler);
+
+    ChannelHandler replace(String oldName, String newName, ChannelHandler newHandler);
+
+    <T extends ChannelHandler> T replace(Class<T> oldHandlerType, String newName, ChannelHandler newHandler);
+
+    ChannelHandler first();
+
+    ChannelHandlerContext firstContext();
+
+    ChannelHandler last();
+
+    ChannelHandlerContext lastContext();
+
+    ChannelHandler get(String name);
+
+    <T extends ChannelHandler> T get(Class<T> handlerType);
+
+    ChannelHandlerContext context(ChannelHandler handler);
+
+    ChannelHandlerContext context(String name);
+
+    ChannelHandlerContext context(Class<? extends ChannelHandler> handlerType);
 
     // ----------------------------------- 入站业务方法 返回值重写 -----------------------------------
     @Override
@@ -37,7 +102,26 @@ public interface ChannelPipeline extends ChannelInboundInvoker, ChannelOutboundI
     @Override
     ChannelPipeline fireChannelReadComplete();
 
+    @Override
+    ChannelPipeline fireChannelWritabilityChanged();
 
+    @Override
+    ChannelPipeline fireChannelRegistered();
+
+    @Override
+    ChannelPipeline fireChannelUnregistered();
+
+    @Override
+    ChannelPipeline fireChannelActive();
+
+    @Override
+    ChannelPipeline fireChannelInactive();
+
+    @Override
+    ChannelPipeline fireExceptionCaught(Throwable cause);
+
+    @Override
+    ChannelPipeline fireUserEventTriggered(Object event);
 
     // ----------------------------------- 出站业务方法 返回值重写 -----------------------------------
     @Override

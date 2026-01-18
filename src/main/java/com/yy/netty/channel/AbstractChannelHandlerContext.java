@@ -6,8 +6,7 @@ import com.yy.netty.util.internal.ObjectUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.yy.netty.channel.ChannelHandlerMask.MASK_CHANNEL_READ;
-import static com.yy.netty.channel.ChannelHandlerMask.mask;
+import static com.yy.netty.channel.ChannelHandlerMask.*;
 
 /**
  * 抽象的ChannelHandlerContext类，所有ChannelHandlerContext的子类都需要继承该类,提供作为pipeline链表节点的基础通用功能
@@ -149,6 +148,287 @@ public abstract class AbstractChannelHandlerContext implements ChannelHandlerCon
         }
     }
 
+    @Override
+    public ChannelHandlerContext fireChannelReadComplete() {
+        invokeChannelReadComplete(findContextInbound(MASK_CHANNEL_READ_COMPLETE));
+        return this;
+    }
+
+    static void invokeChannelReadComplete(final AbstractChannelHandlerContext next) {
+        EventExecutor executor = next.executor();
+        if (executor.inEventLoop(Thread.currentThread())) {
+            next.invokeChannelReadComplete();
+        }
+//        一般来说是不会走到下面这个分支的,所以先注释了,不必再引入更多的类
+//        else {
+//            Tasks tasks = next.invokeTasks;
+//            if (tasks == null) {
+//                next.invokeTasks = tasks = new Tasks(next);
+//            }
+//            executor.execute(tasks.invokeChannelReadCompleteTask);
+//        }
+    }
+
+    private void invokeChannelReadComplete() {
+        if (invokeHandler()) {
+            try {
+                ((ChannelInboundHandler) handler()).channelReadComplete(this);
+            } catch (Throwable t) {
+                notifyHandlerException(t);
+            }
+        } else {
+            fireChannelReadComplete();
+        }
+    }
+
+
+    @Override
+    public ChannelHandlerContext fireChannelWritabilityChanged() {
+        invokeChannelWritabilityChanged(findContextInbound(MASK_CHANNEL_WRITABILITY_CHANGED));
+        return this;
+    }
+
+    static void invokeChannelWritabilityChanged(final AbstractChannelHandlerContext next) {
+        EventExecutor executor = next.executor();
+        if (executor.inEventLoop(Thread.currentThread())) {
+            next.invokeChannelWritabilityChanged();
+        }
+//        else {
+//            Tasks tasks = next.invokeTasks;
+//            if (tasks == null) {
+//                next.invokeTasks = tasks = new Tasks(next);
+//            }
+//            executor.execute(tasks.invokeChannelWritableStateChangedTask);
+//        }
+    }
+
+    private void invokeChannelWritabilityChanged() {
+        if (invokeHandler()) {
+            try {
+                ((ChannelInboundHandler) handler()).channelWritabilityChanged(this);
+            } catch (Throwable t) {
+                notifyHandlerException(t);
+            }
+        } else {
+            fireChannelWritabilityChanged();
+        }
+    }
+
+
+    /**
+     * 找到下一个对registere事件感兴趣的ChannelHandler，registere事件就是handler中的channelRegistered方法，只要该方法被重写，就意味着该ChannelHandler对registere事件感兴趣。
+     * @return
+     */
+    @Override
+    public ChannelHandlerContext fireChannelRegistered() {
+        invokeChannelRegistered(findContextInbound(MASK_CHANNEL_REGISTERED));
+        return this;
+    }
+
+    static void invokeChannelRegistered(final AbstractChannelHandlerContext next) {
+        EventExecutor executor = next.executor();
+        if (executor.inEventLoop(Thread.currentThread())) {
+            next.invokeChannelRegistered();
+        } else {
+            executor.execute(new Runnable() {
+                @Override
+                public void run() {
+                    next.invokeChannelRegistered();
+                }
+            });
+        }
+    }
+
+    private void invokeChannelRegistered() {
+        //接下来会一直看见invokeHandler这个方法，这个方法就是判断CannelHandler在链表中的状态，只有是ADD_COMPLETE，
+        //才会返回true，方法才能继续向下运行，如果返回false，那就进入else分支，会跳过该节点，寻找下一个可以处理数据的节点
+        if (invokeHandler()) {
+            try {
+                ((ChannelInboundHandler) handler()).channelRegistered(this);
+            } catch (Throwable t) {
+                notifyHandlerException(t);
+            }
+        } else {
+            fireChannelRegistered();
+        }
+    }
+
+    @Override
+    public ChannelHandlerContext fireChannelUnregistered() {
+        invokeChannelUnregistered(findContextInbound(MASK_CHANNEL_UNREGISTERED));
+        return this;
+    }
+
+    static void invokeChannelUnregistered(final AbstractChannelHandlerContext next) {
+        EventExecutor executor = next.executor();
+        if (executor.inEventLoop(Thread.currentThread())) {
+            next.invokeChannelUnregistered();
+        } else {
+            executor.execute(new Runnable() {
+                @Override
+                public void run() {
+                    next.invokeChannelUnregistered();
+                }
+            });
+        }
+    }
+
+    private void invokeChannelUnregistered() {
+        if (invokeHandler()) {
+            try {
+                ((ChannelInboundHandler) handler()).channelUnregistered(this);
+            } catch (Throwable t) {
+                notifyHandlerException(t);
+            }
+        } else {
+            fireChannelUnregistered();
+        }
+    }
+
+    @Override
+    public ChannelHandlerContext fireChannelActive() {
+        invokeChannelActive(findContextInbound(MASK_CHANNEL_ACTIVE));
+        return this;
+    }
+
+    static void invokeChannelActive(final AbstractChannelHandlerContext next) {
+        EventExecutor executor = next.executor();
+        if (executor.inEventLoop(Thread.currentThread())) {
+            next.invokeChannelActive();
+        } else {
+            executor.execute(new Runnable() {
+                @Override
+                public void run() {
+                    next.invokeChannelActive();
+                }
+            });
+        }
+    }
+
+    private void invokeChannelActive() {
+        if (invokeHandler()) {
+            try {
+                ((ChannelInboundHandler) handler()).channelActive(this);
+            } catch (Throwable t) {
+                notifyHandlerException(t);
+            }
+        } else {
+            fireChannelActive();
+        }
+    }
+
+    @Override
+    public ChannelHandlerContext fireChannelInactive() {
+        invokeChannelInactive(findContextInbound(MASK_CHANNEL_INACTIVE));
+        return this;
+    }
+
+    static void invokeChannelInactive(final AbstractChannelHandlerContext next) {
+        EventExecutor executor = next.executor();
+        if (executor.inEventLoop(Thread.currentThread())) {
+            next.invokeChannelInactive();
+        } else {
+            executor.execute(new Runnable() {
+                @Override
+                public void run() {
+                    next.invokeChannelInactive();
+                }
+            });
+        }
+    }
+
+    private void invokeChannelInactive() {
+        if (invokeHandler()) {
+            try {
+                ((ChannelInboundHandler) handler()).channelInactive(this);
+            } catch (Throwable t) {
+                notifyHandlerException(t);
+            }
+        } else {
+            fireChannelInactive();
+        }
+    }
+
+    @Override
+    public ChannelHandlerContext fireExceptionCaught(Throwable cause) {
+        invokeExceptionCaught(findContextInbound(MASK_EXCEPTION_CAUGHT), cause);
+        return this;
+    }
+
+    static void invokeExceptionCaught(final AbstractChannelHandlerContext next, final Throwable cause) {
+        ObjectUtil.checkNotNull(cause, "cause");
+        EventExecutor executor = next.executor();
+        if (executor.inEventLoop(Thread.currentThread())) {
+            next.invokeExceptionCaught(cause);
+        } else {
+            try {
+                executor.execute(new Runnable() {
+                    @Override
+                    public void run() {
+                        next.invokeExceptionCaught(cause);
+                    }
+                });
+            } catch (Throwable t) {
+                if (logger.isWarnEnabled()) {
+                    logger.warn("Failed to submit an exceptionCaught() event.", t);
+                    logger.warn("The exceptionCaught() event that was failed to submit was:", cause);
+                }
+            }
+        }
+    }
+
+    private void invokeExceptionCaught(final Throwable cause) {
+        if (invokeHandler()) {
+            try {
+                handler().exceptionCaught(this, cause);
+            } catch (Throwable error) {
+                if (logger.isDebugEnabled()) {
+                    logger.debug("An exception {} was thrown by a user handler's exceptionCaught() method while handling the following exception:",
+                            //ThrowableUtil.stackTraceToString(error),
+                            cause);
+                } else if (logger.isWarnEnabled()) {
+                    logger.warn("An exception '{}' [enable DEBUG level for full stacktrace] was thrown by a user handler's exceptionCaught() method while handling the following exception:",
+                            error, cause);
+                }
+            }
+        } else {
+            fireExceptionCaught(cause);
+        }
+    }
+
+    @Override
+    public ChannelHandlerContext fireUserEventTriggered(Object event) {
+        invokeUserEventTriggered(findContextInbound(MASK_USER_EVENT_TRIGGERED), event);
+        return this;
+    }
+
+    static void invokeUserEventTriggered(final AbstractChannelHandlerContext next, final Object event) {
+        ObjectUtil.checkNotNull(event, "event");
+        EventExecutor executor = next.executor();
+        if (executor.inEventLoop(Thread.currentThread())) {
+            next.invokeUserEventTriggered(event);
+        } else {
+            executor.execute(new Runnable() {
+                @Override
+                public void run() {
+                    next.invokeUserEventTriggered(event);
+                }
+            });
+        }
+    }
+
+    private void invokeUserEventTriggered(Object event) {
+        if (invokeHandler()) {
+            try {
+                ((ChannelInboundHandler) handler()).userEventTriggered(this, event);
+            } catch (Throwable t) {
+                notifyHandlerException(t);
+            }
+        } else {
+            fireUserEventTriggered(event);
+        }
+    }
+
     // 获取当前节点往后的第一个实现了入参mask感兴趣的节点
     private AbstractChannelHandlerContext findContextInbound(int mask) {
         AbstractChannelHandlerContext ctx = this;
@@ -194,25 +474,6 @@ public abstract class AbstractChannelHandlerContext implements ChannelHandlerCon
         } while (cause != null);
 
         return false;
-    }
-
-    private void invokeExceptionCaught(final Throwable cause) {
-        if (invokeHandler()) {
-            try {
-                handler().exceptionCaught(this, cause);
-            } catch (Throwable error) {
-                if (logger.isDebugEnabled()) {
-                    logger.debug("An exception {} was thrown by a user handler's exceptionCaught() method while handling the following exception:",
-                            //ThrowableUtil.stackTraceToString(error),
-                            cause);
-                } else if (logger.isWarnEnabled()) {
-                    logger.warn("An exception '{}' [enable DEBUG level for full stacktrace] was thrown by a user handler's exceptionCaught() method while handling the following exception:",
-                            error, cause);
-                }
-            }
-        } else {
-            fireExceptionCaught(cause);
-        }
     }
 
     // ------------------------------ 出站相关方法 ----------------------------------

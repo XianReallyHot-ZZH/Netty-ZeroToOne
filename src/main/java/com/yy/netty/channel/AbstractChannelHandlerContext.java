@@ -6,6 +6,9 @@ import com.yy.netty.util.internal.ObjectUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.yy.netty.channel.ChannelHandlerMask.MASK_CHANNEL_READ;
+import static com.yy.netty.channel.ChannelHandlerMask.mask;
+
 /**
  * 抽象的ChannelHandlerContext类，所有ChannelHandlerContext的子类都需要继承该类,提供作为pipeline链表节点的基础通用功能
  * ChannelPipeline类中定义了调用方法，然后会调用到AbstractChannelHandlerContext类中，在AbstractChannelHandlerContext中，交给真正做事的ChannelHandler去执行。
@@ -47,16 +50,6 @@ public abstract class AbstractChannelHandlerContext implements ChannelHandlerCon
     // 把初始状态赋值给handlerState，handlerState属性就是ChannelHandler刚添加到链表时的状态
     private volatile int handlerState = INIT;
 
-
-    /**
-     * 用于ChannelHandlerContext在初始化的时候就为其封装的ChannelHandler计算出感兴趣的事件类型
-     * @param clazz
-     * @return
-     */
-    static int mask(Class<? extends ChannelHandler> clazz) {
-        // TODO:
-        return 0;
-    }
 
     /**
      * 构造方法
@@ -108,17 +101,119 @@ public abstract class AbstractChannelHandlerContext implements ChannelHandlerCon
     // ------------------------------ 入站相关方法 ----------------------------------
 
     /**
-     * pipeline上ChannelRead的流程起点
-     * 用途：我们写代码的时候，写一个rpc框架，消息中间件等等，肯定要用到handler的这个方法
+     * pipeline上ChannelRead的流程起点，寻找当前节点往后第一个实现了ChannelRead的节点，然后触发该节点的channelRead方法
+     * 用途：我们写代码的时候，写一个rpc框架，消息中间件等等，肯定要用到handler的这个方法，都会重写ChannelRead方法，这个方法被触发的起点是pipeline的fireChannelRead
      *
      * @param msg
      * @return
      */
     @Override
     public ChannelHandlerContext fireChannelRead(Object msg) {
-        return null;
+        invokeChannelRead(findContextInbound(MASK_CHANNEL_READ), msg);
+        return this;
     }
 
+    /**
+     * 触发链表上具体节点AbstractChannelHandlerContext内含的ChannelHandler的channelRead方法
+     *
+     * @param next
+     * @param msg
+     */
+    static void invokeChannelRead(final AbstractChannelHandlerContext next, Object msg) {
+        final Object m = msg;
+        EventExecutor executor = next.executor();
+        if (executor.inEventLoop(Thread.currentThread())) {
+            next.invokeChannelRead(m);
+        } else {
+            executor.execute(new Runnable() {
+                @Override
+                public void run() {
+                    next.invokeChannelRead(m);
+                }
+            });
+        }
+    }
+
+    // 调用当前节点的ChannelHandler的channelRead方法
+    private void invokeChannelRead(Object msg) {
+        if (invokeHandler()) {
+            // 触发当前节点的ChannelHandler的channelRead方法
+            try {
+                ((ChannelInboundHandler) handler()).channelRead(this, msg);
+            } catch (Throwable t) {
+                notifyHandlerException(t);
+            }
+        } else {
+            // 当前节点的ChannelHandler状态不对，那么往下触发
+            fireChannelRead(msg);
+        }
+    }
+
+    // 获取当前节点往后的第一个实现了入参mask感兴趣的节点
+    private AbstractChannelHandlerContext findContextInbound(int mask) {
+        AbstractChannelHandlerContext ctx = this;
+        do {
+            //为什么获取后一个？因为是入站处理器，数据从前往后传输
+            ctx = ctx.next;
+        } while ((ctx.executionMask & mask) == 0);
+        return ctx;
+    }
+
+    // 判断当前节点的ChannelHandler是否可以处理事件
+    private boolean invokeHandler() {
+        int handlerState = this.handlerState;
+        return handlerState == ADD_COMPLETE || (!ordered && handlerState == ADD_PENDING);
+    }
+
+    private void notifyHandlerException(Throwable cause) {
+        if (inExceptionCaught(cause)) {
+            if (logger.isWarnEnabled()) {
+                logger.warn("An exception was thrown by a user handler while handling an exceptionCaught event", cause);
+            }
+            return;
+        }
+
+        invokeExceptionCaught(cause);
+    }
+
+    private static boolean inExceptionCaught(Throwable cause) {
+        do {
+            StackTraceElement[] trace = cause.getStackTrace();
+            if (trace != null) {
+                for (StackTraceElement t : trace) {
+                    if (t == null) {
+                        break;
+                    }
+                    if ("exceptionCaught".equals(t.getMethodName())) {
+                        return true;
+                    }
+                }
+            }
+
+            cause = cause.getCause();
+        } while (cause != null);
+
+        return false;
+    }
+
+    private void invokeExceptionCaught(final Throwable cause) {
+        if (invokeHandler()) {
+            try {
+                handler().exceptionCaught(this, cause);
+            } catch (Throwable error) {
+                if (logger.isDebugEnabled()) {
+                    logger.debug("An exception {} was thrown by a user handler's exceptionCaught() method while handling the following exception:",
+                            //ThrowableUtil.stackTraceToString(error),
+                            cause);
+                } else if (logger.isWarnEnabled()) {
+                    logger.warn("An exception '{}' [enable DEBUG level for full stacktrace] was thrown by a user handler's exceptionCaught() method while handling the following exception:",
+                            error, cause);
+                }
+            }
+        } else {
+            fireExceptionCaught(cause);
+        }
+    }
 
     // ------------------------------ 出站相关方法 ----------------------------------
 

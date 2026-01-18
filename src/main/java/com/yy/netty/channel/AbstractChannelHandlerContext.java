@@ -1,5 +1,7 @@
 package com.yy.netty.channel;
 
+import com.yy.netty.util.Attribute;
+import com.yy.netty.util.AttributeKey;
 import com.yy.netty.util.ResourceLeakHint;
 import com.yy.netty.util.concurrent.EventExecutor;
 import com.yy.netty.util.internal.ObjectUtil;
@@ -894,7 +896,22 @@ public abstract class AbstractChannelHandlerContext implements ChannelHandlerCon
 //        }
     }
 
+    // -------------------------------------- attribute map类方法--------------------------------------
+    @Override
+    public <T> Attribute<T> attr(AttributeKey<T> key) {
+        return channel().attr(key);
+    }
 
+    @Override
+    public <T> boolean hasAttr(AttributeKey<T> key) {
+        return channel().hasAttr(key);
+    }
+
+    // --------------------------------------- ResourceLeakHint 接口方法 --------------------------------------
+    @Override
+    public String toHintString() {
+        return '\'' + name + "' will handle the message from this point.";
+    }
 
     // -------------------------------------- 内部通用的、基础的方法 --------------------------------------
     private static boolean safeExecute(EventExecutor executor, Runnable runnable, ChannelPromise promise, Object msg) {
@@ -959,6 +976,9 @@ public abstract class AbstractChannelHandlerContext implements ChannelHandlerCon
 
 
 
-
+    @Override
+    public String toString() {
+        return StringUtil.simpleClassName(ChannelHandlerContext.class) + '(' + name + ", " + channel() + ')';
+    }
 
 }

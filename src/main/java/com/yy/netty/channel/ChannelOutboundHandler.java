@@ -9,6 +9,7 @@ import java.net.SocketAddress;
  */
 public interface ChannelOutboundHandler extends ChannelHandler {
 
+    // 开启本channel的‘读’功能，比如服务端就是监听客户端的连接请求，客户端就是监听服务端的响应请求
     void read(ChannelHandlerContext ctx) throws Exception;
 
     // 绑定本channel到本地服务端口(只有服务端的channel才会实现该方法)

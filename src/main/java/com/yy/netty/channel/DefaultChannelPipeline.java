@@ -587,6 +587,50 @@ public class DefaultChannelPipeline implements ChannelPipeline {
     }
 
 
+    protected void onUnhandledInboundMessage(ChannelHandlerContext ctx, Object msg) {
+        onUnhandledInboundMessage(msg);
+        if (logger.isDebugEnabled()) {
+            logger.debug("Discarded message pipeline : {}. Channel : {}.", ctx.pipeline().names(), ctx.channel());
+        }
+    }
+
+    protected void onUnhandledInboundMessage(Object msg) {
+        try {
+            logger.debug("Discarded inbound message {} that reached at the tail of the pipeline. Please check your pipeline configuration.", msg);
+        } finally {
+            //当该引用计数减至为0时，该ByteBuf即可回收，待后面实现
+            //ReferenceCountUtil.release(msg);
+        }
+    }
+
+    protected void onUnhandledInboundChannelReadComplete() {
+    }
+
+    protected void onUnhandledInboundUserEventTriggered(Object evt) {
+        // This may not be a configuration error and so don't log anything.
+        // The event may be superfluous for the current pipeline configuration.
+        //ReferenceCountUtil.release(evt);
+    }
+
+
+    protected void onUnhandledChannelWritabilityChanged() {
+    }
+
+    protected void onUnhandledInboundException(Throwable cause) {
+        try {
+            logger.warn("An exceptionCaught() event was fired, and it reached at the tail of the pipeline. It usually means the last handler in the pipeline did not handle the exception.", cause);
+        } finally {
+            //ReferenceCountUtil.release(cause);
+        }
+    }
+
+    protected void onUnhandledInboundChannelActive() {
+    }
+
+
+    protected void onUnhandledInboundChannelInactive() {
+    }
+
     /**
      * 头节点即是出站处理器，又是入站处理器,本身也是链表节点
      * 1、最终所有的出站操作的终点就是这里，无论如何最终都会回归到这里
@@ -716,7 +760,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
     /**
      * 尾节点是个入站处理器,不是出站处理器
      * 1、只要不是用户在ChannelHandler中主动调用出站方法，所有入站操作的终点都是这里,作为入站终点，啥都不用做，到这里结束链表的串行调用即可
-     * 2、可以用来从尾结点往前找出站处理器，那么相当于不会遗漏掉任何出站处理器
+     * 2、可以用来从尾结点作为起点往前找出站处理器，那么相当于不会遗漏掉任何出站处理器
      */
     final class TailContext extends AbstractChannelHandlerContext implements ChannelInboundHandler {
 
@@ -738,21 +782,20 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         public void handlerRemoved(ChannelHandlerContext ctx) {}
 
         // ------------------------------ ChannelInboundHandler入站接口方法 ------------------------------
-
-
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-
+            //如果接收到的msg传到了尾节点，说明该数据没有被处理过，这里直接释放内存即可
+            onUnhandledInboundMessage(ctx, msg);
         }
 
         @Override
         public void channelReadComplete(ChannelHandlerContext ctx) throws Exception {
-
+            onUnhandledInboundChannelReadComplete();
         }
 
         @Override
         public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
-
+            onUnhandledInboundUserEventTriggered(evt);
         }
 
         @Override
@@ -767,22 +810,22 @@ public class DefaultChannelPipeline implements ChannelPipeline {
 
         @Override
         public void channelActive(ChannelHandlerContext ctx) throws Exception {
-
+            onUnhandledInboundChannelActive();
         }
 
         @Override
         public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-
+            onUnhandledInboundChannelInactive();
         }
 
         @Override
         public void channelWritabilityChanged(ChannelHandlerContext ctx) throws Exception {
-
+            onUnhandledChannelWritabilityChanged();
         }
 
         @Override
         public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-
+            onUnhandledInboundException(cause);
         }
     }
 
